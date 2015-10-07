@@ -10,13 +10,16 @@
 # Cryptopals Rule
 # Always operate on raw bytes, never on encoded strings. Only use hex and base64 for pretty-printing.
 describe :hex_to_base64 do
-  hex_string = '49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d'
-  base64_string = 'SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t'
-  it "converts #{hex_string} to #{base64_string}" do
-    expect(hex_to_base64(hex_string)).to eq(base64_string)
+  HEX_STRING = '49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d'
+  BASE64_STRING = 'SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t'
+
+  it "converts #{HEX_STRING} to #{BASE64_STRING}" do
+    expect(hex_to_base64(HEX_STRING)).to eq(BASE64_STRING)
   end
 
-  it "checks against ruby's own pack/unpack"
+  it "checks against ruby's own pack/unpack" do
+    [HEX_STRING].pack("H*").unpack("m").first == BASE64_STRING
+  end
 end
 
 # hex digits encode 4 bits (2**4 == 16)
