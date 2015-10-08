@@ -20,7 +20,7 @@ require "rspec"
 require "securerandom"
 
 HEX_CIPHERTEXT = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
-# found first with brute force + visually scanning output
+# found first with brute force + visually scanning output (c.f. master 80d4fb4)
 HEX_PLAINTEXT = "436f6f6b696e67204d432773206c696b65206120706f756e64206f66206261636f6e"
 PLAINTEXT = "Cooking MC's like a pound of bacon"
 KEY = "58"
@@ -67,7 +67,7 @@ describe :find_key do
       `grep -i "^#{word}$" /usr/share/dict/words`.empty? ? nil : word
     end
     valid_words = words.compact
-    expect(valid_words.length).to be >= 2 * words.length
+    expect(valid_words.length * 2).to be > words.length
   end
 
   it "finds a key that decrypt the HEX_CIPHERTEXT to all printing characters" do
@@ -88,12 +88,19 @@ def decrypt(hex_HEX_CIPHERTEXT, hex_key:)
   fixed_xor(hex_HEX_CIPHERTEXT, repeated_hex_key)
 end
 
-def find_key(hex_HEX_CIPHERTEXT)
+def find_key(hex_ciphertext)
   # Brute force
-  (0...2**8).each do |key|
-    hex_plainext = decrypt(hex_HEX_CIPHERTEXT, hex_key: "%02x" % key)
+  hex_keys = (0...2**8).map {|k| bytes_to_hex([k]) }
+  probable_hex_keys = hex_keys.select do |potential_hex_key|
+    hex_plainext = decrypt(hex_ciphertext, hex_key: potential_hex_key)
     plaintext = hex_to_raw(hex_plainext)
-    puts "%02x => %s" % [key, plaintext.inspect] if plaintext =~ /\w/
+    puts "#{potential_hex_key} => #{plaintext.inspect}" if plaintext =~ /\w/
+    plaintext.scan(/\w/).length * 2 > plaintext.length
   end
-  SecureRandom.hex(1)
+  puts "#{probable_hex_keys.length}/#{hex_keys.length} Probable keys:"
+  probable_hex_keys.each do |probable_hex_key|
+    probable_hex_plaintext = decrypt(hex_ciphertext, hex_key: probable_hex_key)
+    puts "#{probable_hex_key} => #{hex_to_raw(probable_hex_plaintext).inspect}"
+  end
+  probable_hex_keys.sample
 end
