@@ -60,18 +60,19 @@ describe :decrypt do
 end
 
 describe :find_key do
-  let(:hex_plaintext) { decrypt(HEX_CIPHERTEXT, hex_key: find_key(HEX_CIPHERTEXT)) }
+  let(:plaintext) { hex_to_raw(decrypt(HEX_CIPHERTEXT, hex_key: find_key(HEX_CIPHERTEXT))) }
 
-  it "finds a key that decrypts the HEX_CIPHERTEXT to mostly words in the dict file" do
-    words = hex_plaintext.gsub(/[^\w\s]/, "").split.map do |word|
+  it "finds a key that decrypts #{HEX_CIPHERTEXT} to mostly words in the dict file" do
+    words = plaintext.gsub(/[^\w\s]/, "").split.map do |word|
       `grep -i "^#{word}$" /usr/share/dict/words`.empty? ? nil : word
     end
     valid_words = words.compact
+    puts "words: #{words}, valid_words: #{valid_words}"
     expect(valid_words.length * 2).to be > words.length
   end
 
-  it "finds a key that decrypt the HEX_CIPHERTEXT to all printing characters" do
-    expect(hex_plaintext.scan(/[^[:print:][:space:]]/)).to be_empty
+  it "finds a key that decrypts #{HEX_CIPHERTEXT} to all printing characters" do
+    expect(plaintext.scan(/[^[:print:][:space:]]/)).to be_empty
   end
 end
 
@@ -100,9 +101,9 @@ def find_key(hex_ciphertext)
 
   ranked_candidates = candidates.sort_by(&:score)
 
-  ranked_candidates.each do |c|
-    puts "#{c.hex_key}(#{c.score})\t=> #{c.plaintext.inspect}"
-  end
+  # ranked_candidates.each do |c|
+  #   puts "#{c.hex_key}(#{c.score})\t=> #{c.plaintext.inspect}"
+  # end
 
   ranked_candidates.last.hex_key
 end
