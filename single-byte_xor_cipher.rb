@@ -26,39 +26,39 @@ describe :decrypt do
 
   it "returns the plaintext when the proper key is applied" do
     KEY = "00"
-    expect(decrypt(CIPHERTEXT, key: KEY)).to eq(PLAINTEXT)
-    expect(decrypt("00", key: "00")).to eq("00")
-    expect(decrypt("f00f", key: "ff")).to eq("0ff0")
+    expect(decrypt(CIPHERTEXT, hex_key: KEY)).to eq(PLAINTEXT)
+    expect(decrypt("00", hex_key: "00")).to eq("00")
+    expect(decrypt("f00f", hex_key: "ff")).to eq("0ff0")
   end
 
   it "requires two args, one of them named 'key'" do
     expect { decrypt() }.to raise_error(ArgumentError)
     expect { decrypt(CIPHERTEXT) }.to raise_error(ArgumentError)
-    expect { decrypt(CIPHERTEXT, key: SecureRandom.hex(1)) }.to_not raise_error
+    expect { decrypt(CIPHERTEXT, hex_key: SecureRandom.hex(1)) }.to_not raise_error
   end
 
   it "requires key to be one hex byte" do
-    expect { decrypt(CIPHERTEXT, key: SecureRandom.hex(1)[0]) }.to raise_error(ArgumentError)
+    expect { decrypt(CIPHERTEXT, hex_key: SecureRandom.hex(1)[0]) }.to raise_error(ArgumentError)
     long_hex_key = SecureRandom.hex(100)
     3.upto(long_hex_key.length - 1) do |num_hex_digits|
-      expect { decrypt(CIPHERTEXT, key: long_hex_key[0, num_hex_digits]) }.to raise_error(ArgumentError)
+      expect { decrypt(CIPHERTEXT, hex_key: long_hex_key[0, num_hex_digits]) }.to raise_error(ArgumentError)
     end
-    expect { decrypt("beef", key: "cake") }.to raise_error(ArgumentError)
-    expect { decrypt("dead", key: "b0d") }.to raise_error(ArgumentError)
-    expect { decrypt("dead", key: "kk") }.to raise_error(ArgumentError)
+    expect { decrypt("beef", hex_key: "cake") }.to raise_error(ArgumentError)
+    expect { decrypt("dead", hex_key: "b0d") }.to raise_error(ArgumentError)
+    expect { decrypt("dead", hex_key: "kk") }.to raise_error(ArgumentError)
   end
 
   it "requires ciphertext to be full hex bytes" do
-    expect(decrypt(SecureRandom.hex(0), key: SecureRandom.hex(1))).to eq("")
+    expect(decrypt(SecureRandom.hex(0), hex_key: SecureRandom.hex(1))).to eq("")
     random_hex = SecureRandom.hex(SecureRandom.random_number(100))
-    expect { decrypt(random_hex, key: SecureRandom.hex(1)) }.to_not raise_error
-    expect { decrypt(random_hex[1..-1], key: SecureRandom.hex(1)) }.to raise_error(ArgumentError)
+    expect { decrypt(random_hex, hex_key: SecureRandom.hex(1)) }.to_not raise_error
+    expect { decrypt(random_hex[1..-1], hex_key: SecureRandom.hex(1)) }.to raise_error(ArgumentError)
   end  
 
 end
 
 describe :find_key do
-  let(:plaintext) { decrypt(CIPHERTEXT, key: find_key(CIPHERTEXT)) }
+  let(:plaintext) { decrypt(CIPHERTEXT, hex_key: find_key(CIPHERTEXT)) }
 
   it "finds a key that decrypts the ciphertext to mostly words in the dict file" do
     words = plaintext.gsub(/[^\w\s]/, "").split.map do |word|
@@ -75,13 +75,13 @@ end
 
 require "./fixed_xor"
 
-def decrypt(ciphertext, key:)
-  fail ArgumentError, "key must be one full hex byte" if key.length != 2
+def decrypt(hex_ciphertext, hex_key:)
+  fail ArgumentError, "key must be one full hex byte" if hex_key.length != 2
 
-  repeated_key = key * (ciphertext.length / key.length)
-  fixed_xor(ciphertext, repeated_key)
+  repeated_hex_key = hex_key * (hex_ciphertext.length / hex_key.length)
+  fixed_xor(hex_ciphertext, repeated_hex_key)
 end
 
-def find_key(ciphertext)
+def find_key(hex_ciphertext)
   SecureRandom.hex(1)
 end
