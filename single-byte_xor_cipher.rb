@@ -109,7 +109,12 @@ def find_key(hex_ciphertext)
 end
 
 # Just an guess; I could look this up, but let's see if this suffices
-TOP_ENGLISH_CHARS_BY_FREQ = [' ', 'R', 'S', 'T', 'L', 'N', 'E', 'D', 'H', 'I', 'O', 'A']
+# TOP_ENGLISH_CHARS_BY_FREQ = [' ', 'R', 'S', 'T', 'L', 'N', 'E', 'D', 'H', 'I', 'O', 'A']
+# Generated from the challenge text itself minus the HEX_CIPHERTEXT with the following:
+# upcase.chars.sort.chunk(&:itself).map {|letter, instances| [letter, instances.length] }.sort_by(&:last).map(&:first).reverse[0, 12]
+# TOP_ENGLISH_CHARS_BY_FREQ = [" ", "E", "O", "T", "I", "N", "A", "H", "S", "R", "C", "D"]
+# Generated from a similar command on /usr/share/dict/words, removing "\n", adding " "
+TOP_ENGLISH_CHARS_BY_FREQ = [" ", "E", "I", "A", "O", "R", "N", "T", "S", "L", "C", "U"]
 def score_plaintext(plaintext)
   plaintext.upcase.scan(/[#{TOP_ENGLISH_CHARS_BY_FREQ.join}]/).length
 end
