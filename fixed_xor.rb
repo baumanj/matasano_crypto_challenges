@@ -34,11 +34,15 @@ describe :fixed_xor do
   end
 end
 
+def bytes_to_hex(byte_array)
+  byte_array.map(&:chr).join("").unpack("H*").first
+end
+
 def fixed_xor(*hex_buffers)
   fail ArgumentError, "buffers must be equal length" if hex_buffers.map(&:length).uniq.length != 1
   fail ArgumentError, "buffers must be full bytes" if hex_buffers.first.length.odd?
 
   byte_arrays = hex_buffers.map {|hex| hex.scan(/../).map {|hex_byte| Integer(hex_byte, 16) } }
   xored_bytes = byte_arrays.reduce {|a, e| a.zip(e).map {|bytes| bytes.reduce(&:^) } }
-  xored_bytes.map(&:chr).join("").unpack("H*").first
+  bytes_to_hex(xored_bytes)
 end
