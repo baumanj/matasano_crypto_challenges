@@ -114,7 +114,9 @@ end
 # upcase.chars.sort.chunk(&:itself).map {|letter, instances| [letter, instances.length] }.sort_by(&:last).map(&:first).reverse[0, 12]
 # TOP_ENGLISH_CHARS_BY_FREQ = [" ", "E", "O", "T", "I", "N", "A", "H", "S", "R", "C", "D"]
 # Generated from a similar command on /usr/share/dict/words, removing "\n", adding " "
-TOP_ENGLISH_CHARS_BY_FREQ = [" ", "E", "I", "A", "O", "R", "N", "T", "S", "L", "C", "U"]
+# TOP_ENGLISH_CHARS_BY_FREQ = [" ", "E", "I", "A", "O", "R", "N", "T", "S", "L", "C", "U"]
+# Obligatory:
+TOP_ENGLISH_CHARS_BY_FREQ = ["E", "T", "A", "O", "I", "N", " ", "S", "H", "R", "D", "L", "U"]
 def score_plaintext(plaintext)
   plaintext.upcase.scan(/[#{TOP_ENGLISH_CHARS_BY_FREQ.join}]/).length
 end
