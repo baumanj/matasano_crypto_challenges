@@ -151,5 +151,5 @@ def bytes_to_base64(bytes_array)
   end
 
   b64_string = b64_digits.drop_while {|d| d == B64_DIGITS[0] } # strip leading "zeroes"
-  b64_string.empty? ? B64_DIGITS[0] : b64_string.join("")
+  b64_string.empty? ? B64_DIGITS[0] : b64_string.join
 end

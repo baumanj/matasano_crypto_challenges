@@ -35,7 +35,7 @@ describe :fixed_xor do
 end
 
 def bytes_to_hex(byte_array)
-  byte_array.map(&:chr).join("").unpack("H*").first
+  byte_array.map(&:chr).join.unpack("H*").first
 end
 
 def fixed_xor(*hex_buffers)
