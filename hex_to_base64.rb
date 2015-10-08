@@ -13,9 +13,9 @@
 
 if __FILE__ == $0
   puts `rspec -f documentation #{__FILE__}`
-else
-  require "rspec"
 end
+
+require "rspec"
 
 describe :hex_to_base64 do
   HEX_STRING = '49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d'
@@ -27,6 +27,60 @@ describe :hex_to_base64 do
 
   it "checks against ruby's own pack/unpack" do
     [HEX_STRING].pack("H*").unpack("m").first == BASE64_STRING
+  end
+end
+
+describe :hex_to_bytes do
+  it "returns an empty array for an empty string" do
+    expect(hex_to_bytes('')).to eq([])
+  end
+
+  it "handles odd length strings" do
+    expect(hex_to_bytes('F')).to eq([0xF])
+    expect(hex_to_bytes('A07')).to eq([0xA, 0x07])
+  end
+
+  it "handles both upper and lowercase hex" do
+    expect(hex_to_bytes('f00d')).to eq([0xf0, 0x0d])
+    expect(hex_to_bytes('F00D')).to eq([0xf0, 0x0d])
+  end
+
+  it "gives an error on invalid input" do
+    expect { hex_to_bytes('beefcake') }.to raise_error(ArgumentError)
+  end
+
+  { '492' => [0x4, 0x92],
+    '76d' => [0x7, 0x6d],
+    'f6d' => [0xf, 0x6d]
+  }.each do |input, output|
+    it "converts #{input.inspect} to #{output.inspect}" do
+      expect(hex_to_bytes(input)).to eq(output)
+    end
+  end
+end
+
+describe :bytes_to_base64 do
+  it "returns an empty string for an empty array" do
+    expect(bytes_to_base64([])).to eq("")
+  end
+
+  it "gives an error on invalid input" do
+    expect { bytes_to_base64([2**8]) }.to raise_error(ArgumentError)
+  end
+
+  it "trims leading zeroes" do
+    expect(bytes_to_base64([0] * 5)).to eq("A")
+    expect(bytes_to_base64([0, 1])).to eq("B")
+    expect(bytes_to_base64([0, 0, 1, 0, 0, 1])).to eq("BAAAB")
+  end
+
+  { [0x4, 0x92] => 'SS',
+    [0x7, 0x6d] => 'dt',
+    [0xf, 0x6d] => '9t'
+  }.each do |input, output|
+    it "converts #{input.inspect} to #{output.inspect}" do
+      expect(bytes_to_base64(input)).to eq(output)
+    end
   end
 end
 
@@ -66,63 +120,9 @@ def hex_to_base64(hex_string)
   bytes_to_base64(hex_to_bytes(hex_string))
 end
 
-describe :hex_to_bytes do
-  it "returns an empty array for an empty string" do
-    expect(hex_to_bytes('')).to eq([])
-  end
-
-  it "handles odd length strings" do
-    expect(hex_to_bytes('F')).to eq([0xF])
-    expect(hex_to_bytes('A07')).to eq([0xA, 0x07])
-  end
-
-  it "handles both upper and lowercase hex" do
-    expect(hex_to_bytes('f00d')).to eq([0xf0, 0x0d])
-    expect(hex_to_bytes('F00D')).to eq([0xf0, 0x0d])
-  end
-
-  it "gives an error on invalid input" do
-    expect { hex_to_bytes('beefcake') }.to raise_error(ArgumentError)
-  end
-
-  { '492' => [0x4, 0x92],
-    '76d' => [0x7, 0x6d],
-    'f6d' => [0xf, 0x6d]
-  }.each do |input, output|
-    it "converts #{input.inspect} to #{output.inspect}" do
-      expect(hex_to_bytes(input)).to eq(output)
-    end
-  end
-end
-
 def hex_to_bytes(hex_string)
   hex_string = "0#{hex_string}" if hex_string.length.odd?
   hex_string.scan(/../).map {|hex_byte| Integer(hex_byte, 16) }
-end
-
-describe :bytes_to_base64 do
-  it "returns an empty string for an empty array" do
-    expect(bytes_to_base64([])).to eq("")
-  end
-
-  it "gives an error on invalid input" do
-    expect { bytes_to_base64([2**8]) }.to raise_error(ArgumentError)
-  end
-
-  it "trims leading zeroes" do
-    expect(bytes_to_base64([0] * 5)).to eq("A")
-    expect(bytes_to_base64([0, 1])).to eq("B")
-    expect(bytes_to_base64([0, 0, 1, 0, 0, 1])).to eq("BAAAB")
-  end
-
-  { [0x4, 0x92] => 'SS',
-    [0x7, 0x6d] => 'dt',
-    [0xf, 0x6d] => '9t'
-  }.each do |input, output|
-    it "converts #{input.inspect} to #{output.inspect}" do
-      expect(bytes_to_base64(input)).to eq(output)
-    end
-  end
 end
 
 BYTE_RANGE = 0..255
