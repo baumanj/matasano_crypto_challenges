@@ -88,19 +88,21 @@ def decrypt(hex_HEX_CIPHERTEXT, hex_key:)
   fixed_xor(hex_HEX_CIPHERTEXT, repeated_hex_key)
 end
 
+Candidate = Struct.new(:hex_key, :plaintext, :score)
 def find_key(hex_ciphertext)
-  # Brute force
-  hex_keys = (0...2**8).map {|k| bytes_to_hex([k]) }
-  probable_hex_keys = hex_keys.select do |potential_hex_key|
-    hex_plainext = decrypt(hex_ciphertext, hex_key: potential_hex_key)
+  candidates = (0...2**8).map do |key|
+    hex_key = bytes_to_hex([key])
+    hex_plainext = decrypt(hex_ciphertext, hex_key: hex_key)
     plaintext = hex_to_raw(hex_plainext)
-    puts "#{potential_hex_key} => #{plaintext.inspect}" if plaintext =~ /\w/
-    plaintext.scan(/[\w\s]/).length > 0.9 * plaintext.length
+    score = plaintext.scan(/[\w\s]/).length
+    Candidate.new(hex_key, plaintext, score)
   end
-  puts "#{probable_hex_keys.length}/#{hex_keys.length} Probable keys:"
-  probable_hex_keys.each do |probable_hex_key|
-    probable_hex_plaintext = decrypt(hex_ciphertext, hex_key: probable_hex_key)
-    puts "#{probable_hex_key} => #{hex_to_raw(probable_hex_plaintext).inspect}"
+
+  ranked_candidates = candidates.sort_by(&:score)
+
+  ranked_candidates.each do |c|
+    puts "#{c.hex_key}(#{c.score})\t=> #{c.plaintext.inspect}"
   end
-  probable_hex_keys.sample
+
+  ranked_candidates.last.hex_key
 end
