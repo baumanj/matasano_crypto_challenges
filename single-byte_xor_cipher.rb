@@ -94,7 +94,7 @@ def find_key(hex_ciphertext)
     hex_key = bytes_to_hex([key])
     hex_plainext = decrypt(hex_ciphertext, hex_key: hex_key)
     plaintext = hex_to_raw(hex_plainext)
-    score = plaintext.scan(/[\w\s]/).length
+    score = score_plaintext(plaintext)
     Candidate.new(hex_key, plaintext, score)
   end
 
@@ -105,4 +105,10 @@ def find_key(hex_ciphertext)
   end
 
   ranked_candidates.last.hex_key
+end
+
+# Just an guess; I could look this up, but let's see if this suffices
+TOP_ENGLISH_CHARS_BY_FREQ = [' ', 'R', 'S', 'T', 'L', 'N', 'E', 'D', 'H', 'I', 'O', 'A']
+def score_plaintext(plaintext)
+  plaintext.upcase.scan(/[#{TOP_ENGLISH_CHARS_BY_FREQ.join}]/).length
 end
