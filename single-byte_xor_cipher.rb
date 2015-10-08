@@ -95,7 +95,7 @@ def find_key(hex_ciphertext)
     hex_plainext = decrypt(hex_ciphertext, hex_key: potential_hex_key)
     plaintext = hex_to_raw(hex_plainext)
     puts "#{potential_hex_key} => #{plaintext.inspect}" if plaintext =~ /\w/
-    plaintext.scan(/\w/).length * 2 > plaintext.length
+    plaintext.scan(/[\w\s]/).length > 0.9 * plaintext.length
   end
   puts "#{probable_hex_keys.length}/#{hex_keys.length} Probable keys:"
   probable_hex_keys.each do |probable_hex_key|
