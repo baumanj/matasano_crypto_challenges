@@ -59,15 +59,35 @@ describe :decrypt do
 
 end
 
+TOP_ENGLISH_CHARS_BY_FREQ = {
+  # Just an guess; I could look this up, but let's see if this suffices
+  guessing: [' ', 'R', 'S', 'T', 'L', 'N', 'E', 'D', 'H', 'I', 'O', 'A'],
+
+  # Generated from the challenge text itself minus the HEX_CIPHERTEXT with the following:
+  # upcase.chars.sort.chunk(&:itself).map {|letter, instances| [letter, instances.length] }.sort_by(&:last).map(&:first).reverse[0, 12]
+  challenge_text: [" ", "E", "O", "T", "I", "N", "A", "H", "S", "R", "C", "D"],
+
+  # Generated from a similar command on /usr/share/dict/words, removing "\n", adding " "
+  the_dictionary: [" ", "E", "I", "A", "O", "R", "N", "T", "S", "L", "C", "U"],
+
+  a_joke: ["E", "T", "A", "O", "I", "N", " ", "S", "H", "R", "D", "L", "U"]
+}
+
 describe :find_key do
-  let(:plaintext) { hex_to_raw(decrypt(HEX_CIPHERTEXT, hex_key: find_key(HEX_CIPHERTEXT))) }
+  TOP_ENGLISH_CHARS_BY_FREQ.each do |strategy, top_chars|
+    context "when using top characters determined from #{strategy}" do
+      let(:plaintext) do
+        hex_to_raw(decrypt(HEX_CIPHERTEXT, hex_key: find_key(HEX_CIPHERTEXT, TOP_ENGLISH_CHARS_BY_FREQ[:the_dictionary])))
+      end
 
-  it "finds a key that decrypts #{HEX_CIPHERTEXT} to mostly words in the dict file" do
-    expect(valid_word_pct(plaintext)).to be > 50
-  end
+      it "finds a key that decrypts #{HEX_CIPHERTEXT} to mostly words in the dict file" do
+        expect(valid_word_pct(plaintext)).to be > 50
+      end
 
-  it "finds a key that decrypts #{HEX_CIPHERTEXT} to all printing characters" do
-    expect(plaintext.scan(/[^[:print:][:space:]]/)).to be_empty
+      it "finds a key that decrypts #{HEX_CIPHERTEXT} to all printing characters" do
+        expect(plaintext.scan(/[^[:print:][:space:]]/)).to be_empty
+      end
+    end
   end
 end
 
@@ -94,12 +114,12 @@ def decrypt(hex_ciphertext, hex_key:)
 end
 
 Candidate = Struct.new(:hex_key, :plaintext, :score)
-def find_key(hex_ciphertext)
+def find_key(hex_ciphertext, top_chars = TOP_ENGLISH_CHARS_BY_FREQ[:the_dictionary])
   candidates = (0...2**8).map do |key|
     hex_key = bytes_to_hex([key])
     hex_plainext = decrypt(hex_ciphertext, hex_key: hex_key)
     plaintext = hex_to_raw(hex_plainext)
-    score = score_plaintext(plaintext)
+    score = score_plaintext(plaintext, top_chars)
     Candidate.new(hex_key, plaintext, score)
   end
 
@@ -112,15 +132,6 @@ def find_key(hex_ciphertext)
   ranked_candidates.last.hex_key
 end
 
-# Just an guess; I could look this up, but let's see if this suffices
-# TOP_ENGLISH_CHARS_BY_FREQ = [' ', 'R', 'S', 'T', 'L', 'N', 'E', 'D', 'H', 'I', 'O', 'A']
-# Generated from the challenge text itself minus the HEX_CIPHERTEXT with the following:
-# upcase.chars.sort.chunk(&:itself).map {|letter, instances| [letter, instances.length] }.sort_by(&:last).map(&:first).reverse[0, 12]
-# TOP_ENGLISH_CHARS_BY_FREQ = [" ", "E", "O", "T", "I", "N", "A", "H", "S", "R", "C", "D"]
-# Generated from a similar command on /usr/share/dict/words, removing "\n", adding " "
-TOP_ENGLISH_CHARS_BY_FREQ = [" ", "E", "I", "A", "O", "R", "N", "T", "S", "L", "C", "U"]
-# Obligatory:
-# TOP_ENGLISH_CHARS_BY_FREQ = ["E", "T", "A", "O", "I", "N", " ", "S", "H", "R", "D", "L", "U"]
-def score_plaintext(plaintext)
-  plaintext.upcase.scan(/[#{TOP_ENGLISH_CHARS_BY_FREQ.join}]/).length
+def score_plaintext(plaintext, top_chars = TOP_ENGLISH_CHARS_BY_FREQ[:the_dictionary])
+  plaintext.upcase.scan(/[#{top_chars.join}]/).length
 end
