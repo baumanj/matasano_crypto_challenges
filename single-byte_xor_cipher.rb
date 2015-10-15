@@ -63,12 +63,7 @@ describe :find_key do
   let(:plaintext) { hex_to_raw(decrypt(HEX_CIPHERTEXT, hex_key: find_key(HEX_CIPHERTEXT))) }
 
   it "finds a key that decrypts #{HEX_CIPHERTEXT} to mostly words in the dict file" do
-    words = plaintext.gsub(/[^\w\s]/, "").split.map do |word|
-      `grep -i "^#{word}$" /usr/share/dict/words`.empty? ? nil : word
-    end
-    valid_words = words.compact
-    puts "words: #{words}, valid_words: #{valid_words}"
-    expect(valid_words.length * 2).to be > words.length
+    expect(valid_word_pct(plaintext)).to be > 50
   end
 
   it "finds a key that decrypts #{HEX_CIPHERTEXT} to all printing characters" do
@@ -77,6 +72,15 @@ describe :find_key do
 end
 
 require "./fixed_xor"
+
+def valid_word_pct(plaintext)
+  words = plaintext.gsub(/[^\w\s]/, "").split.map do |word|
+    `grep -i "^#{word}$" /usr/share/dict/words`.empty? ? nil : word
+  end
+  valid_words = words.compact
+  puts "words: #{words}, valid_words: #{valid_words}"
+  100 * valid_words.length.to_f / words.length
+end
 
 def hex_to_raw(hex_bytes)
   [hex_bytes].pack("H*")
@@ -114,9 +118,9 @@ end
 # upcase.chars.sort.chunk(&:itself).map {|letter, instances| [letter, instances.length] }.sort_by(&:last).map(&:first).reverse[0, 12]
 # TOP_ENGLISH_CHARS_BY_FREQ = [" ", "E", "O", "T", "I", "N", "A", "H", "S", "R", "C", "D"]
 # Generated from a similar command on /usr/share/dict/words, removing "\n", adding " "
-# TOP_ENGLISH_CHARS_BY_FREQ = [" ", "E", "I", "A", "O", "R", "N", "T", "S", "L", "C", "U"]
+TOP_ENGLISH_CHARS_BY_FREQ = [" ", "E", "I", "A", "O", "R", "N", "T", "S", "L", "C", "U"]
 # Obligatory:
-TOP_ENGLISH_CHARS_BY_FREQ = ["E", "T", "A", "O", "I", "N", " ", "S", "H", "R", "D", "L", "U"]
+# TOP_ENGLISH_CHARS_BY_FREQ = ["E", "T", "A", "O", "I", "N", " ", "S", "H", "R", "D", "L", "U"]
 def score_plaintext(plaintext)
   plaintext.upcase.scan(/[#{TOP_ENGLISH_CHARS_BY_FREQ.join}]/).length
 end
