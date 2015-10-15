@@ -82,11 +82,11 @@ def hex_to_raw(hex_bytes)
   [hex_bytes].pack("H*")
 end
 
-def decrypt(hex_HEX_CIPHERTEXT, hex_key:)
+def decrypt(hex_ciphertext, hex_key:)
   fail ArgumentError, "key must be one full hex byte" if hex_key.length != 2
 
-  repeated_hex_key = hex_key * (hex_HEX_CIPHERTEXT.length / hex_key.length)
-  fixed_xor(hex_HEX_CIPHERTEXT, repeated_hex_key)
+  repeated_hex_key = hex_key * (hex_ciphertext.length / hex_key.length)
+  fixed_xor(hex_ciphertext, repeated_hex_key)
 end
 
 Candidate = Struct.new(:hex_key, :plaintext, :score)
