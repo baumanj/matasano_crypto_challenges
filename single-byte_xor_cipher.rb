@@ -19,38 +19,41 @@ end
 require "rspec"
 require "securerandom"
 
-HEX_CIPHERTEXT = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
-# found first with brute force + visually scanning output (c.f. master 80d4fb4)
-HEX_PLAINTEXT = "436f6f6b696e67204d432773206c696b65206120706f756e64206f66206261636f6e"
-PLAINTEXT = "Cooking MC's like a pound of bacon"
-KEY = "58"
+require "./fixed_xor"
+
+module SingleByteXORCipher
+  HEX_CIPHERTEXT = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
+  # found first with brute force + visually scanning output (c.f. master 80d4fb4)
+  HEX_PLAINTEXT = "436f6f6b696e67204d432773206c696b65206120706f756e64206f66206261636f6e"
+  PLAINTEXT = "Cooking MC's like a pound of bacon"
+  KEY = "58"
+end
 
 describe :decrypt do
-
-  it "returns the PLAINTEXT when the proper key is applied" do
-    expect(decrypt(HEX_CIPHERTEXT, hex_key: KEY)).to eq(HEX_PLAINTEXT)
+  it "returns the plaintext when the proper key is applied" do
+    expect(decrypt(SingleByteXORCipher::HEX_CIPHERTEXT, hex_key: SingleByteXORCipher::KEY)).to eq(SingleByteXORCipher::HEX_PLAINTEXT)
     expect(decrypt("00", hex_key: "00")).to eq("00")
     expect(decrypt("f00f", hex_key: "ff")).to eq("0ff0")
   end
 
   it "requires two args, one of them named 'key'" do
     expect { decrypt() }.to raise_error(ArgumentError)
-    expect { decrypt(HEX_CIPHERTEXT) }.to raise_error(ArgumentError)
-    expect { decrypt(HEX_CIPHERTEXT, hex_key: SecureRandom.hex(1)) }.to_not raise_error
+    expect { decrypt(SingleByteXORCipher::HEX_CIPHERTEXT) }.to raise_error(ArgumentError)
+    expect { decrypt(SingleByteXORCipher::HEX_CIPHERTEXT, hex_key: SecureRandom.hex(1)) }.to_not raise_error
   end
 
   it "requires key to be one hex byte" do
-    expect { decrypt(HEX_CIPHERTEXT, hex_key: SecureRandom.hex(1)[0]) }.to raise_error(ArgumentError)
+    expect { decrypt(SingleByteXORCipher::HEX_CIPHERTEXT, hex_key: SecureRandom.hex(1)[0]) }.to raise_error(ArgumentError)
     long_hex_key = SecureRandom.hex(100)
     3.upto(long_hex_key.length - 1) do |num_hex_digits|
-      expect { decrypt(HEX_CIPHERTEXT, hex_key: long_hex_key[0, num_hex_digits]) }.to raise_error(ArgumentError)
+      expect { decrypt(SingleByteXORCipher::HEX_CIPHERTEXT, hex_key: long_hex_key[0, num_hex_digits]) }.to raise_error(ArgumentError)
     end
     expect { decrypt("beef", hex_key: "cake") }.to raise_error(ArgumentError)
     expect { decrypt("dead", hex_key: "b0d") }.to raise_error(ArgumentError)
     expect { decrypt("dead", hex_key: "kk") }.to raise_error(ArgumentError)
   end
 
-  it "requires HEX_CIPHERTEXT to be full hex bytes" do
+  it "requires the hex ciphertext to be full hex bytes" do
     expect(decrypt(SecureRandom.hex(0), hex_key: SecureRandom.hex(1))).to eq("")
     random_hex = SecureRandom.hex(SecureRandom.random_number(100))
     expect { decrypt(random_hex, hex_key: SecureRandom.hex(1)) }.to_not raise_error
@@ -63,7 +66,7 @@ TOP_ENGLISH_CHARS_BY_FREQ = {
   # Just an guess; I could look this up, but let's see if this suffices
   guessing: [' ', 'R', 'S', 'T', 'L', 'N', 'E', 'D', 'H', 'I', 'O', 'A'],
 
-  # Generated from the challenge text itself minus the HEX_CIPHERTEXT with the following:
+  # Generated from the challenge text itself minus the hex ciphertext with the following:
   # upcase.chars.sort.chunk(&:itself).map {|letter, instances| [letter, instances.length] }.sort_by(&:last).map(&:first).reverse[0, 12]
   challenge_text: [" ", "E", "O", "T", "I", "N", "A", "H", "S", "R", "C", "D"],
 
@@ -77,21 +80,19 @@ describe :find_key do
   TOP_ENGLISH_CHARS_BY_FREQ.each do |strategy, top_chars|
     context "when using top characters determined from #{strategy}" do
       let(:plaintext) do
-        hex_to_raw(decrypt(HEX_CIPHERTEXT, hex_key: find_key(HEX_CIPHERTEXT, TOP_ENGLISH_CHARS_BY_FREQ[:the_dictionary])))
+        hex_to_raw(decrypt(SingleByteXORCipher::HEX_CIPHERTEXT, hex_key: find_key(SingleByteXORCipher::HEX_CIPHERTEXT, TOP_ENGLISH_CHARS_BY_FREQ[:the_dictionary])))
       end
 
-      it "finds a key that decrypts #{HEX_CIPHERTEXT} to mostly words in the dict file" do
+      it "finds a key that decrypts #{SingleByteXORCipher::HEX_CIPHERTEXT} to mostly words in the dict file" do
         expect(valid_word_pct(plaintext)).to be > 50
       end
 
-      it "finds a key that decrypts #{HEX_CIPHERTEXT} to all printing characters" do
+      it "finds a key that decrypts #{SingleByteXORCipher::HEX_CIPHERTEXT} to all printing characters" do
         expect(plaintext.scan(/[^[:print:][:space:]]/)).to be_empty
       end
     end
   end
 end
-
-require "./fixed_xor"
 
 def valid_word_pct(plaintext)
   words = plaintext.gsub(/[^\w\s]/, "").split.map do |word|

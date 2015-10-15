@@ -43,6 +43,9 @@ def fixed_xor(*hex_buffers)
   fail ArgumentError, "buffers must be full bytes" if hex_buffers.first.length.odd?
 
   byte_arrays = hex_buffers.map {|hex| hex.scan(/../).map {|hex_byte| Integer(hex_byte, 16) } }
-  xored_bytes = byte_arrays.reduce {|a, e| a.zip(e).map {|bytes| bytes.reduce(&:^) } }
-  bytes_to_hex(xored_bytes)
+  bytes_to_hex(xor_byte_arrays(byte_arrays))
+end
+
+def xor_byte_arrays(byte_arrays)
+  byte_arrays.reduce {|a, e| a.zip(e).map {|bytes| bytes.reduce(&:^) } }
 end

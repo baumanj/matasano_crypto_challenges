@@ -16,10 +16,10 @@ require "./single-byte_xor_cipher"
 
 shared_examples "a find_hex_ciphertext function" do
   it "finds the hex string that has been encrypted by single-character XOR among random hex strings" do
-    possible_hex_ciphertexts = Array.new(100).map { SecureRandom.hex(HEX_CIPHERTEXT.length) }
-    possible_hex_ciphertexts << HEX_CIPHERTEXT
+    possible_hex_ciphertexts = Array.new(100).map { SecureRandom.hex(SingleByteXORCipher::HEX_CIPHERTEXT.length) }
+    possible_hex_ciphertexts << SingleByteXORCipher::HEX_CIPHERTEXT
     possible_hex_ciphertexts.shuffle!
-    expect(send(subject, possible_hex_ciphertexts)).to eq(HEX_CIPHERTEXT)
+    expect(send(subject, possible_hex_ciphertexts)).to eq(SingleByteXORCipher::HEX_CIPHERTEXT)
   end
 
   it "finds a hex string that decrypts to mostly valid words among the example file" do
@@ -39,12 +39,16 @@ describe :find_hex_ciphertext_slow do
 end
 
 describe :downcase_ciphertext do
-  it "lowers the case of encrypted text" do
-    expect(decrypt(HEX_CIPHERTEXT, hex_key: KEY)).to eq(raw_to_hex(PLAINTEXT))
-    expect(decrypt(HEX_CIPHERTEXT, hex_key: KEY)).to_not eq(raw_to_hex(PLAINTEXT.downcase))
+  hex_ciphertext = SingleByteXORCipher::HEX_CIPHERTEXT
+  key = SingleByteXORCipher::KEY
+  plaintext = SingleByteXORCipher::PLAINTEXT
 
-    downcased_hex_ciphertext = raw_to_hex(downcase_ciphertext(hex_to_raw(HEX_CIPHERTEXT)))
-    expect(decrypt(downcased_hex_ciphertext, hex_key: KEY)).to eq(raw_to_hex(PLAINTEXT.downcase))
+  it "lowers the case of encrypted text" do
+    expect(decrypt(hex_ciphertext, hex_key: key)).to eq(raw_to_hex(plaintext))
+    expect(decrypt(hex_ciphertext, hex_key: key)).to_not eq(raw_to_hex(plaintext.downcase))
+
+    downcased_hex_ciphertext = raw_to_hex(downcase_ciphertext(hex_to_raw(hex_ciphertext)))
+    expect(decrypt(downcased_hex_ciphertext, hex_key: key)).to eq(raw_to_hex(plaintext.downcase))
   end
 
 end
