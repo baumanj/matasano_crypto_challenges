@@ -18,3 +18,7 @@ end
 def hex_to_raw(hex)
   hex_to_bytes(hex).pack("C*")
 end
+
+def base64_to_raw(b64)
+  b64.unpack("m").first
+end

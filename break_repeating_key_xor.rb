@@ -31,7 +31,9 @@ end
 
 require "rspec"
 
+require "./implement_repeating-key_xor"
 require "./bit_manipulation"
+require "./natural_language_processing"
 
 describe :hamming_distance do
   TEST_INPUTS = ["this is a test", "wokka wokka!!!"]
@@ -40,4 +42,22 @@ describe :hamming_distance do
   it "returns #{TEST_OUTPUT} for #{TEST_INPUTS.map(&:inspect).join(' and ')}" do
     expect(send(subject, *TEST_INPUTS)).to eq(TEST_OUTPUT)
   end
+end
+
+describe :break_repeating_key_xor do
+  it "return #{RepeatingKeyXOR::PLAINTEXT} for #{RepeatingKeyXOR::HEX_CIPHERTEXT}" do
+    ciphertext = hex_to_raw(RepeatingKeyXOR::HEX_CIPHERTEXT)
+    expect(send(subject, ciphertext)).to eq(RepeatingKeyXOR::PLAINTEXT)
+  end
+
+  it "finds returns mostly valid words for the example file" do
+    b64_ciphertext = File.readlines("6.txt").map(&:chomp).join
+    ciphertext = base64_to_raw(b64_ciphertext)
+    plaintext = send(subject, ciphertext)
+    expect(valid_word_pct(plaintext)).to be > 50
+  end
+end
+
+def break_repeating_key_xor(ciphertext)
+  ""
 end

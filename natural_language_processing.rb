@@ -20,7 +20,11 @@ def valid_word_pct(plaintext)
   words = plaintext.gsub(/[^\w\s]/, "").split.map do |word|
     `grep -i "^#{word}$" /usr/share/dict/words`.empty? ? nil : word
   end
-  valid_words = words.compact
-  puts "words: #{words}, valid_words: #{valid_words}"
-  100 * valid_words.length.to_f / words.length
+  if words.any?
+    valid_words = words.compact
+    puts "words: #{words}, valid_words: #{valid_words}"
+    100 * valid_words.length.to_f / words.length
+  else
+    0
+  end
 end

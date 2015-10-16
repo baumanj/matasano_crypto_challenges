@@ -21,25 +21,28 @@ require "rspec"
 
 require "./bit_manipulation"
 
-describe :repeating_key_xor do
+module RepeatingKeyXOR
   PLAINTEXT = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal"
   KEY = "ICE"
   HEX_CIPHERTEXT = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f"
+end  
+
+describe :repeating_key_xor do
 
   it "requires plaintext" do
     expect { send(subject) }.to raise_error(ArgumentError)
-    expect { send(subject, key: KEY) }.to raise_error(ArgumentError)
-    expect(send(subject, plaintext: "", key: KEY)).to eq("")
+    expect { send(subject, key: RepeatingKeyXOR::KEY) }.to raise_error(ArgumentError)
+    expect(send(subject, plaintext: "", key: RepeatingKeyXOR::KEY)).to eq("")
   end
 
   it "requires a nonzero-length key" do
     expect { send(subject) }.to raise_error(ArgumentError)
-    expect { send(subject, plaintext: PLAINTEXT) }.to raise_error(ArgumentError)
-    expect { send(subject, plaintext: PLAINTEXT, key: "") }.to raise_error(ZeroDivisionError)
+    expect { send(subject, plaintext: RepeatingKeyXOR::PLAINTEXT) }.to raise_error(ArgumentError)
+    expect { send(subject, plaintext: RepeatingKeyXOR::PLAINTEXT, key: "") }.to raise_error(ZeroDivisionError)
   end
 
-  it "returns #{HEX_CIPHERTEXT} when the key #{KEY} is applied to #{PLAINTEXT.inspect}" do
-    expect(raw_to_hex(send(subject, plaintext: PLAINTEXT, key: KEY))).to eq(HEX_CIPHERTEXT)
+  it "returns #{RepeatingKeyXOR::HEX_CIPHERTEXT} when the key #{RepeatingKeyXOR::KEY} is applied to #{RepeatingKeyXOR::PLAINTEXT.inspect}" do
+    expect(raw_to_hex(send(subject, plaintext: RepeatingKeyXOR::PLAINTEXT, key: RepeatingKeyXOR::KEY))).to eq(RepeatingKeyXOR::HEX_CIPHERTEXT)
   end
 end
 
