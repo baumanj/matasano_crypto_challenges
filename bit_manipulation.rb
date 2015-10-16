@@ -13,3 +13,12 @@ def downcase_ciphertext(ciphertext)
   downcased_bytes = ciphertext.bytes.map {|c| c | case_bit }
   bytes_to_raw(downcased_bytes)
 end
+
+def count_set_bits(x)
+  # OPTIMIZE if needed
+  x.bytes.map {|i| i.to_s(2) }.join.delete("0").length
+end
+
+def hamming_distance(a, b)
+  count_set_bits(xor(a, b))
+end
