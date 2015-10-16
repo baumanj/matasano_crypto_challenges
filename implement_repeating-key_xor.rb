@@ -19,7 +19,7 @@ end
 
 require "rspec"
 
-require "./detect_single-character_xor"
+require "./bit_manipulation"
 
 describe :repeating_key_xor do
   PLAINTEXT = "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal"
@@ -35,7 +35,7 @@ describe :repeating_key_xor do
   it "requires a nonzero-length key" do
     expect { send(subject) }.to raise_error(ArgumentError)
     expect { send(subject, plaintext: PLAINTEXT) }.to raise_error(ArgumentError)
-    expect { send(subject, plaintext: PLAINTEXT, key: "") }.to raise_error(ArgumentError)
+    expect { send(subject, plaintext: PLAINTEXT, key: "") }.to raise_error(ZeroDivisionError)
   end
 
   it "returns #{HEX_CIPHERTEXT} when the key #{KEY} is applied to #{PLAINTEXT.inspect}" do
@@ -44,12 +44,8 @@ describe :repeating_key_xor do
 end
 
 def repeating_key_xor(plaintext:, key:)
-  fail ArgumentError, "key must not be empty" if key.empty?
-
   full_copies, additional_bytes = plaintext.length.divmod(key.length)
   repeated_key = key * full_copies + key[0, additional_bytes]
 
-  byte_arrays = [repeated_key, plaintext].map(&:bytes)
-  xored_bytes = xor_byte_arrays(byte_arrays)
-  xored_bytes.map(&:chr).join
+  xor(plaintext, repeated_key)
 end

@@ -19,7 +19,9 @@ end
 require "rspec"
 require "securerandom"
 
-require "./fixed_xor"
+require "./type_conversion"
+require "./bit_manipulation"
+require "./natural_language_processing"
 
 module SingleByteXORCipher
   HEX_CIPHERTEXT = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
@@ -62,20 +64,6 @@ describe :decrypt do
 
 end
 
-TOP_ENGLISH_CHARS_BY_FREQ = {
-  # Just an guess; I could look this up, but let's see if this suffices
-  guessing: [' ', 'R', 'S', 'T', 'L', 'N', 'E', 'D', 'H', 'I', 'O', 'A'],
-
-  # Generated from the challenge text itself minus the hex ciphertext with the following:
-  # upcase.chars.sort.chunk(&:itself).map {|letter, instances| [letter, instances.length] }.sort_by(&:last).map(&:first).reverse[0, 12]
-  challenge_text: [" ", "E", "O", "T", "I", "N", "A", "H", "S", "R", "C", "D"],
-
-  # Generated from a similar command on /usr/share/dict/words, removing "\n", adding " "
-  the_dictionary: [" ", "E", "I", "A", "O", "R", "N", "T", "S", "L", "C", "U"],
-
-  a_joke: ["E", "T", "A", "O", "I", "N", " ", "S", "H", "R", "D", "L", "U"]
-}
-
 describe :find_key do
   TOP_ENGLISH_CHARS_BY_FREQ.each do |strategy, top_chars|
     context "when using top characters determined from #{strategy}" do
@@ -94,24 +82,14 @@ describe :find_key do
   end
 end
 
-def valid_word_pct(plaintext)
-  words = plaintext.gsub(/[^\w\s]/, "").split.map do |word|
-    `grep -i "^#{word}$" /usr/share/dict/words`.empty? ? nil : word
-  end
-  valid_words = words.compact
-  puts "words: #{words}, valid_words: #{valid_words}"
-  100 * valid_words.length.to_f / words.length
-end
-
-def hex_to_raw(hex_bytes)
-  [hex_bytes].pack("H*")
-end
-
 def decrypt(hex_ciphertext, hex_key:)
   fail ArgumentError, "key must be one full hex byte" if hex_key.length != 2
 
-  repeated_hex_key = hex_key * (hex_ciphertext.length / hex_key.length)
-  fixed_xor(hex_ciphertext, repeated_hex_key)
+  key = hex_to_raw(hex_key)
+  ciphertext = hex_to_raw(hex_ciphertext)
+
+  repeated_key = key * (ciphertext.length / key.length)
+  raw_to_hex(xor(ciphertext, repeated_key))
 end
 
 Candidate = Struct.new(:hex_key, :plaintext, :score)
@@ -131,8 +109,4 @@ def find_key(hex_ciphertext, top_chars = TOP_ENGLISH_CHARS_BY_FREQ[:the_dictiona
   # end
 
   ranked_candidates.last.hex_key
-end
-
-def score_plaintext(plaintext, top_chars = TOP_ENGLISH_CHARS_BY_FREQ[:the_dictionary])
-  plaintext.upcase.scan(/[#{top_chars.join}]/).length
 end

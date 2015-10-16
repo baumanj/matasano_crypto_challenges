@@ -53,15 +53,6 @@ describe :downcase_ciphertext do
 
 end
 
-def raw_to_hex(raw)
-  raw.unpack("H*").first
-end
-
-def downcase_ciphertext(ciphertext)
-  case_bit = ("A".ord ^ "a".ord)
-  ciphertext.bytes.map {|c| c | case_bit }.map(&:chr).join
-end
-
 Ciphertext = Struct.new(:hex, :downcased, :ciphertext_score, :plaintext, :plaintext_score)
 
 # Slow, but simple: Finished in 11.98 seconds (files took 0.13045 seconds to load)

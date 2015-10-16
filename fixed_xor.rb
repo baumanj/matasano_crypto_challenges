@@ -18,6 +18,9 @@ end
 
 require "rspec"
 
+require "./bit_manipulation"
+require "./type_conversion"
+
 describe :fixed_xor do
   HEX1 = "1c0111001f010100061a024b53535009181c"
   HEX2 = "686974207468652062756c6c277320657965"
@@ -34,18 +37,7 @@ describe :fixed_xor do
   end
 end
 
-def bytes_to_hex(byte_array)
-  byte_array.map(&:chr).join.unpack("H*").first
-end
-
 def fixed_xor(*hex_buffers)
-  fail ArgumentError, "buffers must be equal length" if hex_buffers.map(&:length).uniq.length != 1
-  fail ArgumentError, "buffers must be full bytes" if hex_buffers.first.length.odd?
-
-  byte_arrays = hex_buffers.map {|hex| hex.scan(/../).map {|hex_byte| Integer(hex_byte, 16) } }
-  bytes_to_hex(xor_byte_arrays(byte_arrays))
-end
-
-def xor_byte_arrays(byte_arrays)
-  byte_arrays.reduce {|a, e| a.zip(e).map {|bytes| bytes.reduce(&:^) } }
+  buffers = hex_buffers.map {|hb| hex_to_raw(hb) }
+  raw_to_hex(xor(*buffers))
 end
