@@ -86,6 +86,6 @@ def find_hex_ciphertext_fast(possible_hex_ciphertexts)
   ciphertexts.sort_by(&:ciphertext_score).reverse_each do |ciphertext|
     key = find_key(hex_to_raw(ciphertext.hex))
     ciphertext.plaintext = hex_to_raw(decrypt(ciphertext.hex, hex_key: raw_to_hex(key)))
-    return ciphertext.hex if ciphertext.plaintext.chomp[/[^[:print:]]/].nil?
+    return ciphertext.hex if all_printable_characters?(ciphertext.plaintext)
   end
 end

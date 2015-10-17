@@ -54,19 +54,55 @@ describe :break_repeating_key_xor do
     b64_ciphertext = File.readlines("6.txt").map(&:chomp).join
     ciphertext = base64_to_raw(b64_ciphertext)
     plaintext = send(subject, ciphertext)
+    puts "Purported plaintext: #{plaintext.inspect}"
     expect(valid_word_pct(plaintext)).to be > 50
   end
 end
 
-Key = Struct.new(:size, :normalized_edit_distance)
+def transpose_for_key_size(ciphertext, key_size)
+  remainder = ciphertext.size % key_size
+  padding = (key_size - remainder) % key_size
+  bytes = ciphertext.bytes + Array.new(padding)
+  bytes.each_slice(key_size).to_a.transpose.map(&:compact)
+end
+
+def sanitize(s)
+  s.chars.map {|c| c.inspect.length == 3 ? c : "?" }.join.inspect
+  # s.gsub(/[^[:print:][:punct:][:space:]]/, "*")
+  # s.gsub(/[^[:word:]]/, "*")
+end
+
 def break_repeating_key_xor(ciphertext)
-  key_sizes = (2..40).to_a
-  potential_keys = (2..40).map do |key_size|
-    d = hamming_distance(*ciphertext.each_slice(key_size).first(2))
-    Key.new(key_size, d.to_f / key_size)
+  puts "INPUT CIPHERTEXT: #{raw_to_hex(ciphertext)}"
+  ciphertext_bytes =
+  max_key_size = [40, ciphertext.length / 2].min
+  potential_key_types = (2..max_key_size).map do |key_size|
+    key_sized_chunks = ciphertext.scan(/.{#{key_size}}/m)
+    distances = key_sized_chunks.each_cons(2).map {|c1, c2| hamming_distance(c1, c2) }
+    normalized_distances = distances.map {|d| d.to_f / key_size}
+    average_normalized_distance = normalized_distances.reduce(&:+) / normalized_distances.size.to_f
+    Struct.new(:size, :normalized_edit_distance, :key, :plaintext, :score)[key_size, average_normalized_distance]
+    # d = hamming_distance(*key_sized_chunks.first(2))
+    # Struct.new(:size, :normalized_edit_distance)[key_size, d.to_f / key_size]
   end
-  key = potential_keys.min_by(&:normalized_edit_distance) # take 2-3 top
-  single_byte_ciphertext_blocks = ciphertext.each_slice(key.size).to_a.transpose
-  single_byte_ciphertext_blocks.map {|b| find_key(b) }
-  ""
+  # key_type = potential_key_types.min_by(&:normalized_edit_distance) # take 2-3 top
+  # puts potential_key_types.sort_by(&:normalized_edit_distance).map(&:inspect)
+  potential_key_types.sort_by(&:normalized_edit_distance).each do |key_type|
+    single_byte_ciphertext_blocks = transpose_for_key_size(ciphertext, key_type.size)
+    # puts "Finding (#{key_type.size}) key bytes"
+    single_byte_keys = single_byte_ciphertext_blocks.map {|bytes| find_key(bytes_to_raw(bytes)) }
+    puts single_byte_keys.inspect
+    key_type.key = single_byte_keys.join
+    key_type.plaintext = repeating_key_xor(buffer: ciphertext, key: key_type.key)
+    key_type.score = score_plaintext_histogram(key_type.plaintext)
+  end
+  potential_key_types.sort_by {|k| k.score * (1.0 / k.normalized_edit_distance) }.each do |key_type|
+    if all_printable_characters?(key_type.plaintext)
+      score_plaintext_histogram(key_type.plaintext)
+      puts "#{key_type.score * (1.0 / key_type.normalized_edit_distance)} SCORE: #{key_type.score}#{'*' unless all_printable_characters?(key_type.plaintext)}\t#{sanitize(key_type.plaintext)}\t#{sanitize(key_type.key)}"
+    end
+  end
+  potential_key_types.max_by {|k| k.score * (1.0 / k.normalized_edit_distance) }
+# rescue Exception => e
+#   require "byebug"; byebug
 end
