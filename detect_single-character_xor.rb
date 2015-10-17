@@ -24,8 +24,9 @@ shared_examples "a find_hex_ciphertext function" do
 
   it "finds a hex string that decrypts to mostly valid words among the example file" do
     hex_ciphertext = send(subject, File.readlines("4.txt").map(&:chomp))
-    hex_key = find_key(hex_ciphertext)
-    plaintext = hex_to_raw(decrypt(hex_ciphertext, hex_key: hex_key))
+    ciphertext = hex_to_raw(hex_ciphertext)
+    key = find_key(ciphertext)
+    plaintext = hex_to_raw(decrypt(hex_ciphertext, hex_key: raw_to_hex(key)))
     expect(valid_word_pct(plaintext)).to be > 50
   end
 end
@@ -58,7 +59,8 @@ Ciphertext = Struct.new(:hex, :downcased, :ciphertext_score, :plaintext, :plaint
 # Slow, but simple: Finished in 11.98 seconds (files took 0.13045 seconds to load)
 def find_hex_ciphertext_slow(possible_hex_ciphertexts)
   ciphertexts = possible_hex_ciphertexts.map do |hex_ciphertext|
-    plaintext = hex_to_raw(decrypt(hex_ciphertext, hex_key: find_key(hex_ciphertext)))
+    key = find_key(hex_to_raw(hex_ciphertext))
+    plaintext = hex_to_raw(decrypt(hex_ciphertext, hex_key: raw_to_hex(key)))
     Ciphertext.new(hex_ciphertext, nil, nil, plaintext, score_plaintext(plaintext))
   end
 
@@ -82,7 +84,8 @@ def find_hex_ciphertext_fast(possible_hex_ciphertexts)
 
   # Searching in ciphertext_score order, return the first fully printable string
   ciphertexts.sort_by(&:ciphertext_score).reverse_each do |ciphertext|
-    ciphertext.plaintext = hex_to_raw(decrypt(ciphertext.hex, hex_key: find_key(ciphertext.hex)))
+    key = find_key(hex_to_raw(ciphertext.hex))
+    ciphertext.plaintext = hex_to_raw(decrypt(ciphertext.hex, hex_key: raw_to_hex(key)))
     return ciphertext.hex if ciphertext.plaintext.chomp[/[^[:print:]]/].nil?
   end
 end

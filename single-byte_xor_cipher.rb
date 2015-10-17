@@ -22,6 +22,7 @@ require "securerandom"
 require "./type_conversion"
 require "./bit_manipulation"
 require "./natural_language_processing"
+require "./crypto"
 
 module SingleByteXORCipher
   HEX_CIPHERTEXT = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
@@ -68,7 +69,9 @@ describe :find_key do
   TOP_ENGLISH_CHARS_BY_FREQ.each do |strategy, top_chars|
     context "when using top characters determined from #{strategy}" do
       let(:plaintext) do
-        hex_to_raw(decrypt(SingleByteXORCipher::HEX_CIPHERTEXT, hex_key: find_key(SingleByteXORCipher::HEX_CIPHERTEXT, TOP_ENGLISH_CHARS_BY_FREQ[:the_dictionary])))
+        ciphertext = hex_to_raw(SingleByteXORCipher::HEX_CIPHERTEXT)
+        key = find_key(ciphertext, top_chars)
+        plaintext = hex_to_raw(decrypt(SingleByteXORCipher::HEX_CIPHERTEXT, hex_key: raw_to_hex(key)))
       end
 
       it "finds a key that decrypts #{SingleByteXORCipher::HEX_CIPHERTEXT} to mostly words in the dict file" do
@@ -90,23 +93,4 @@ def decrypt(hex_ciphertext, hex_key:)
 
   repeated_key = key * (ciphertext.length / key.length)
   raw_to_hex(xor(ciphertext, repeated_key))
-end
-
-Candidate = Struct.new(:hex_key, :plaintext, :score)
-def find_key(hex_ciphertext, top_chars = TOP_ENGLISH_CHARS_BY_FREQ[:the_dictionary])
-  candidates = (0...2**8).map do |key|
-    hex_key = bytes_to_hex([key])
-    hex_plainext = decrypt(hex_ciphertext, hex_key: hex_key)
-    plaintext = hex_to_raw(hex_plainext)
-    score = score_plaintext(plaintext, top_chars)
-    Candidate.new(hex_key, plaintext, score)
-  end
-
-  ranked_candidates = candidates.sort_by(&:score)
-
-  # ranked_candidates.each do |c|
-  #   puts "#{c.hex_key}(#{c.score})\t=> #{c.plaintext.inspect}"
-  # end
-
-  ranked_candidates.last.hex_key
 end

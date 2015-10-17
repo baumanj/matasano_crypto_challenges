@@ -58,6 +58,15 @@ describe :break_repeating_key_xor do
   end
 end
 
+Key = Struct.new(:size, :normalized_edit_distance)
 def break_repeating_key_xor(ciphertext)
+  key_sizes = (2..40).to_a
+  potential_keys = (2..40).map do |key_size|
+    d = hamming_distance(*ciphertext.each_slice(key_size).first(2))
+    Key.new(key_size, d.to_f / key_size)
+  end
+  key = potential_keys.min_by(&:normalized_edit_distance) # take 2-3 top
+  single_byte_ciphertext_blocks = ciphertext.each_slice(key.size).to_a.transpose
+  single_byte_ciphertext_blocks.map {|b| find_key(b) }
   ""
 end
