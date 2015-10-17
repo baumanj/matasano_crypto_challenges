@@ -15,32 +15,36 @@ TOP_ENGLISH_CHARS_BY_FREQ = {
 # Generated from /usr/share/dict/words
 # Values are permille (i.e, 10 x percent)
 ENGLISH_CHARS_HISTOGRAM = {
+  "Z"=>0,
+  "Q"=>1,   #
   "J"=>1,   #
-  "Q"=>2,   ##
-  "X"=>3,   ###
-  "Z"=>4,   ####
-  "W"=>6,   ######
-  "K"=>7,   #######
-  "V"=>9,   #########
-  "F"=>11,  ###########
-  "B"=>18,  ##################
-  "G"=>21,  #####################
-  "Y"=>23,  #######################
-  "H"=>29,  #############################
-  "D"=>30,  ##############################
-  "M"=>31,  ###############################
-  "P"=>35,  ###################################
-  "U"=>39,  #######################################
-  "C"=>46,  ##############################################
-  "L"=>58,  ##########################################################
-  "S"=>62,  ##############################################################
-  "T"=>68,  ####################################################################
-  "N"=>70,  ######################################################################
-  "R"=>71,  #######################################################################
-  "O"=>76,  ############################################################################
-  "A"=>88,  ########################################################################################
-  "I"=>89,  #########################################################################################
-  "E"=>104, ########################################################################################################
+  "X"=>2,   ##
+  "'"=>3,   ###
+  "V"=>8,   ########
+  ","=>9,   #########
+  "."=>9,   #########
+  "K"=>10,  ##########
+  "B"=>11,  ###########
+  "F"=>16,  ################
+  "W"=>16,  ################
+  "Y"=>18,  ##################
+  "P"=>19,  ###################
+  "D"=>22,  ######################
+  "G"=>23,  #######################
+  "U"=>24,  ########################
+  "M"=>24,  ########################
+  "C"=>26,  ##########################
+  "L"=>33,  #################################
+  "H"=>36,  ####################################
+  "R"=>47,  ###############################################
+  "S"=>49,  #################################################
+  "N"=>54,  ######################################################
+  "I"=>58,  ##########################################################
+  "O"=>62,  ##############################################################
+  "A"=>66,  ##################################################################
+  "T"=>77,  #############################################################################
+  "E"=>95,  ###############################################################################################
+  " "=>179, ###################################################################################################################################################################################
 }
 
 ENGLISH_BIGRAMS_HISTOGRAM = {
@@ -318,15 +322,18 @@ ENGLISH_BIGRAMS_HISTOGRAM = {
   "ER"=>21, #####################
 }
 
+def array_to_freq_hash(array)
+  Hash[array.sort.chunk(&:itself).map {|e, es| [e, es.length] }]
+end
+
 def score_plaintext_histogram(plaintext)
-  plaintext_char_freq = plaintext.gsub(/[[:punct:]\s\d]/, "").upcase.chars.sort.chunk(&:itself).map do |char, instances|
-    [char, instances.length]
-  end
-  plaintext_histogram = Hash[plaintext_char_freq]
+  plaintext_chars = plaintext.upcase.chars
+  plaintext_histogram = array_to_freq_hash(plaintext_chars)
+
   keys = ENGLISH_CHARS_HISTOGRAM.keys + (plaintext_histogram.keys - ENGLISH_CHARS_HISTOGRAM.keys)
   value_pairs = keys.map do |char|
     plaintext_instances = plaintext_histogram.fetch(char, 0)
-    expected_instances = (plaintext.length * (ENGLISH_CHARS_HISTOGRAM.fetch(char, 0) / 1000.0)).round
+    expected_instances = (plaintext_chars.length * (ENGLISH_CHARS_HISTOGRAM.fetch(char, 0) / 1000.0)).round
     [char, [plaintext_instances, expected_instances]]
   end
   char_score = value_pairs.map do |char, p|
@@ -339,6 +346,27 @@ def score_plaintext_histogram(plaintext)
   char_score.reduce(&:+)
 end
 
+# def score_plaintext_histogram(plaintext)
+# # def score_plaintext_bigrams(plaintext)
+#   words = plaintext.gsub(/[[:punct:]\d]/, "").upcase.split
+#   words.map! {|w| w.length == 1 ? "#{w} " : w } # Don't lose "I" and "a"
+#   plaintext_bigrams = words.flat_map {|w| w.chars.each_cons(2).map(&:join) }
+#   plaintext_bigrams_histogram = array_to_freq_hash(plaintext_bigrams)
+
+#   value_pairs = plaintext_bigrams_histogram.map do |bigram, plaintext_instances|
+#     expected_instances = plaintext.length * (ENGLISH_BIGRAMS_HISTOGRAM.fetch(bigram, 0) / 1000.0)
+#     [bigram, [plaintext_instances, expected_instances]]
+#   end
+#   char_score = value_pairs.map do |bigram, p|
+#     # plusses = '+' * p.min
+#     # spaces = ' ' * [(p.last - p.first), 0].max
+#     # minuses = '-' * [(p.first - p.last), 0].max
+#     # puts "#{bigram.inspect} #{p.join(', ')} #{2 * p.min - p.max}\t#{plusses}#{spaces}\##{minuses}" 
+#     2 * p.min - p.max
+#   end
+#   char_score.reduce(&:+)
+# end
+
 def score_plaintext(plaintext, top_chars = TOP_ENGLISH_CHARS_BY_FREQ[:the_dictionary])
   plaintext.upcase.scan(/[#{top_chars.join}]/).length
 end
@@ -348,8 +376,9 @@ def all_printable_characters?(buffer)
 end
 
 def valid_word_pct(plaintext)
-  words = plaintext.gsub(/[^\w\s]/, "").split.map do |word|
-    `grep -i "^#{word}$" /usr/share/dict/words`.empty? ? nil : word
+  @dict ||= File.read("/usr/share/dict/words").downcase.split
+  words = plaintext.gsub(/[^\w\s]/, "").downcase.split.map do |word|
+    @dict.include?(word) && word
   end
   if words.any?
     valid_words = words.compact

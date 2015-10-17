@@ -74,7 +74,8 @@ end
 
 def break_repeating_key_xor(ciphertext)
   puts "INPUT CIPHERTEXT: #{raw_to_hex(ciphertext)}"
-  ciphertext_bytes =
+
+  puts "CALCULATING EDIT DISTANCES"
   max_key_size = [40, ciphertext.length / 2].min
   potential_key_types = (2..max_key_size).map do |key_size|
     key_sized_chunks = ciphertext.scan(/.{#{key_size}}/m)
@@ -85,24 +86,31 @@ def break_repeating_key_xor(ciphertext)
     # d = hamming_distance(*key_sized_chunks.first(2))
     # Struct.new(:size, :normalized_edit_distance)[key_size, d.to_f / key_size]
   end
-  # key_type = potential_key_types.min_by(&:normalized_edit_distance) # take 2-3 top
+
+  puts "FINDING BEST KEYS FOR KEY SIZES"
   # puts potential_key_types.sort_by(&:normalized_edit_distance).map(&:inspect)
-  potential_key_types.sort_by(&:normalized_edit_distance).each do |key_type|
+  potential_key_types.sort_by(&:normalized_edit_distance).first(10).each do |key_type|
     single_byte_ciphertext_blocks = transpose_for_key_size(ciphertext, key_type.size)
     # puts "Finding (#{key_type.size}) key bytes"
     single_byte_keys = single_byte_ciphertext_blocks.map {|bytes| find_key(bytes_to_raw(bytes)) }
-    puts single_byte_keys.inspect
+    # puts single_byte_keys.inspect
     key_type.key = single_byte_keys.join
     key_type.plaintext = repeating_key_xor(buffer: ciphertext, key: key_type.key)
-    key_type.score = score_plaintext_histogram(key_type.plaintext)
   end
+
+  puts "SCORING PLAINTEXTS"
+  potential_key_types.each do |key_type|
+    key_type.score = key_type.plaintext.nil? ? 0 : score_plaintext_histogram(key_type.plaintext)
+  end
+
   potential_key_types.sort_by {|k| k.score * (1.0 / k.normalized_edit_distance) }.each do |key_type|
-    if all_printable_characters?(key_type.plaintext)
+    if key_type.plaintext && all_printable_characters?(key_type.plaintext)
       score_plaintext_histogram(key_type.plaintext)
       puts "#{key_type.score * (1.0 / key_type.normalized_edit_distance)} SCORE: #{key_type.score}#{'*' unless all_printable_characters?(key_type.plaintext)}\t#{sanitize(key_type.plaintext)}\t#{sanitize(key_type.key)}"
     end
   end
-  potential_key_types.max_by {|k| k.score * (1.0 / k.normalized_edit_distance) }
+
+  potential_key_types.max_by {|k| k.score * (1.0 / k.normalized_edit_distance) }.plaintext
 # rescue Exception => e
 #   require "byebug"; byebug
 end
