@@ -18,6 +18,8 @@ end
 require "rspec"
 require "openssl"
 
+require "./type_conversion"
+
 describe :decrypt_aes_128_ecb do
   file = "7.txt"
   key = "YELLOW SUBMARINE"
@@ -30,5 +32,8 @@ describe :decrypt_aes_128_ecb do
   end
 end
 
-def decrypt_aes_128_ecb
+def decrypt_aes_128_ecb(buffer, key)
+  cipher = OpenSSL::Cipher.new('AES-128-ECB').decrypt
+  cipher.key = key
+  cipher.update(buffer) + cipher.final
 end
