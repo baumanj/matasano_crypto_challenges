@@ -24,7 +24,18 @@ describe :pkcs7_pad do
   it "returns #{output} when padding #{input} to #{padded_size}" do
     expect(send(subject, input, padded_size)).to eq(output)
   end
+
+  it "gives an error on invalid input" do
+    expect { send(subject, input, rand(input.size)) }.to raise_error(ArgumentError)
+    expect { send(subject, input, 0) }.to raise_error(ArgumentError)
+    expect { send(subject, input, -1) }.to raise_error(ArgumentError)
+  end
+
 end
 
 def pkcs7_pad(buffer, padded_size)
+  fail ArgumentError, "padded_size must not be less than buffer size" if buffer.size > padded_size
+
+  n_pad_bytes = padded_size - buffer.size
+  buffer + n_pad_bytes.chr * n_pad_bytes
 end
