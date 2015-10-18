@@ -326,6 +326,22 @@ def array_to_freq_hash(array)
   Hash[array.sort.chunk(&:itself).map {|e, es| [e, es.length] }]
 end
 
+def array_to_histogram(array)
+  counts = array.sort.chunk(&:itself).map {|e, instances| instances.length }
+  permillages = counts.map {|c| (c * 1000.0 / array.length).round }
+  permillages.sort
+end
+
+# We assumt the ciphertext bytes map to characters, but we don't know which, so we
+# just compare the shapes of the histograms, ignoring the values they map to
+def score_ciphertext_histogram(ciphertext)
+  ciphertext_bytes = downcase_ciphertext(ciphertext).bytes
+  ciphertext_histogram = array_to_histogram(ciphertext_bytes).last(ENGLISH_CHARS_HISTOGRAM.length)
+  english_histogram = ENGLISH_CHARS_HISTOGRAM.values.last(ciphertext_histogram.length)
+  value_pairs = english_histogram.zip(ciphertext_histogram)
+  value_pairs.map {|z| 2 * z.min - z.max }.reduce(&:+)
+end
+
 def score_plaintext_histogram(plaintext)
   plaintext_chars = plaintext.upcase.chars
   plaintext_histogram = array_to_freq_hash(plaintext_chars)

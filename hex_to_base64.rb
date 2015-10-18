@@ -16,6 +16,7 @@ if __FILE__ == $0
 end
 
 require "rspec"
+require "./type_conversion"
 
 describe :hex_to_base64 do
   HEX_STRING = '49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d'
@@ -35,9 +36,9 @@ describe :hex_to_bytes do
     expect(hex_to_bytes('')).to eq([])
   end
 
-  it "handles odd length strings" do
-    expect(hex_to_bytes('F')).to eq([0xF])
-    expect(hex_to_bytes('A07')).to eq([0xA, 0x07])
+  it "rejects odd length strings" do
+    expect { hex_to_bytes('F') }.to raise_error(ArgumentError)
+    expect { hex_to_bytes('A07') }.to raise_error(ArgumentError)
   end
 
   it "handles both upper and lowercase hex" do
@@ -49,9 +50,9 @@ describe :hex_to_bytes do
     expect { hex_to_bytes('beefcake') }.to raise_error(ArgumentError)
   end
 
-  { '492' => [0x4, 0x92],
-    '76d' => [0x7, 0x6d],
-    'f6d' => [0xf, 0x6d]
+  { '0492' => [0x4, 0x92],
+    '076d' => [0x7, 0x6d],
+    '0f6d' => [0xf, 0x6d]
   }.each do |input, output|
     it "converts #{input.inspect} to #{output.inspect}" do
       expect(hex_to_bytes(input)).to eq(output)
@@ -118,11 +119,6 @@ end
 # Research shows the last two digits vary, but the most common seems to be '+', '/'
 def hex_to_base64(hex_string)
   bytes_to_base64(hex_to_bytes(hex_string))
-end
-
-def hex_to_bytes(hex_string)
-  hex_string = "0#{hex_string}" if hex_string.length.odd?
-  hex_string.scan(/../).map {|hex_byte| Integer(hex_byte, 16) }
 end
 
 BYTE_RANGE = 0..255

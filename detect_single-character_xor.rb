@@ -13,6 +13,7 @@ require "rspec"
 require "securerandom"
 
 require "./single-byte_xor_cipher"
+require "./long_running"
 
 shared_examples "a find_hex_ciphertext function" do
   it "finds the hex string that has been encrypted by single-character XOR among random hex strings" do
@@ -54,32 +55,25 @@ describe :downcase_ciphertext do
 
 end
 
-Ciphertext = Struct.new(:hex, :downcased, :ciphertext_score, :plaintext, :plaintext_score)
-
 # Slow, but simple: Finished in 11.98 seconds (files took 0.13045 seconds to load)
 def find_hex_ciphertext_slow(possible_hex_ciphertexts)
-  ciphertexts = possible_hex_ciphertexts.map do |hex_ciphertext|
-    key = find_key(hex_to_raw(hex_ciphertext))
-    plaintext = hex_to_raw(decrypt(hex_ciphertext, hex_key: raw_to_hex(key)))
-    Ciphertext.new(hex_ciphertext, nil, nil, plaintext, score_plaintext(plaintext))
+  long_running do
+    ciphertexts = possible_hex_ciphertexts.map do |hex_ciphertext|
+      long_running_progress
+      key = find_key(hex_to_raw(hex_ciphertext))
+      plaintext = hex_to_raw(decrypt(hex_ciphertext, hex_key: raw_to_hex(key)))
+      Struct.new(:hex, :plaintext_score)[hex_ciphertext, score_plaintext(plaintext)]
+    end
+
+    ciphertexts.max_by(&:plaintext_score).hex
   end
-
-  ciphertexts.max_by(&:plaintext_score).hex
 end
-
-# Generated from /usr/share/dict/words
-ENGLISH_CHARS_HISTOGRAM = [9, 9, 8, 8, 7, 6, 6, 6, 6, 5, 4, 4, 3, 3, 3, 3, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0]
 
 # Fast, but more complex: Finished in 1.85 seconds (files took 0.14201 seconds to load)
 def find_hex_ciphertext_fast(possible_hex_ciphertexts)
   ciphertexts = possible_hex_ciphertexts.map do |hex_ciphertext|
-    downcased = downcase_ciphertext(hex_to_raw(hex_ciphertext))
-    byte_freq_percentages = downcased.bytes.sort.chunk(&:itself).map do |byte, instances|
-      [byte, 100 * instances.length.to_f/downcased.length]
-    end
-    histogram = byte_freq_percentages.sort_by(&:last).reverse.map(&:last).map {|pct| pct.round }
-    ciphertext_score = ENGLISH_CHARS_HISTOGRAM.zip(histogram).map {|z| 2 * z.compact.min - z.compact.max }.reduce(&:+)
-    Ciphertext.new(hex_ciphertext, downcased, ciphertext_score)
+    ciphertext_score = score_ciphertext_histogram(hex_to_raw(hex_ciphertext))
+    Struct.new(:hex, :ciphertext_score, :plaintext)[hex_ciphertext, ciphertext_score]
   end
 
   # Searching in ciphertext_score order, return the first fully printable string
