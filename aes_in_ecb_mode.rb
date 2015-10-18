@@ -16,9 +16,9 @@ if __FILE__ == $0
 end
 
 require "rspec"
-require "openssl"
 
 require "./type_conversion"
+require "./crypto"
 
 describe :decrypt_aes_128_ecb do
   file = "7.txt"
@@ -36,10 +36,4 @@ describe :decrypt_aes_128_ecb do
     key[i] = key[i].succ
     expect { send(subject, buffer, key) }.to raise_error(OpenSSL::Cipher::CipherError)
   end
-end
-
-def decrypt_aes_128_ecb(buffer, key)
-  cipher = OpenSSL::Cipher.new('AES-128-ECB').decrypt
-  cipher.key = key
-  cipher.update(buffer) + cipher.final
 end
