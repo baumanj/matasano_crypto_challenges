@@ -23,12 +23,18 @@ require "./type_conversion"
 describe :decrypt_aes_128_ecb do
   file = "7.txt"
   key = "YELLOW SUBMARINE"
+  base64 = File.read("7.txt").tr("\n", "")
+  buffer = base64_to_raw(base64)
 
   it "decrypts #{file} with the key #{key}" do
     cli_decryption = `openssl aes-128-ecb -in 7.txt -d -a -K #{raw_to_hex(key)}`
-    base64 = File.read("7.txt").tr("\n", "")
-    buffer = base64_to_raw(base64)
     expect(send(subject, buffer, key)).to eq(cli_decryption)
+  end
+
+  it "fails if the key is wrong" do
+    i = rand(key.size)
+    key[i] = key[i].succ
+    expect { send(subject, buffer, key) }.to raise_error(OpenSSL::Cipher::CipherError)
   end
 end
 
