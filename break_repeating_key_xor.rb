@@ -34,6 +34,7 @@ require "rspec"
 require "./implement_repeating-key_xor"
 require "./bit_manipulation"
 require "./natural_language_processing"
+require "./long_running"
 
 describe :hamming_distance do
   TEST_INPUTS = ["this is a test", "wokka wokka!!!"]
@@ -45,7 +46,7 @@ describe :hamming_distance do
 end
 
 describe :break_repeating_key_xor do
-  it "return #{RepeatingKeyXOR::PLAINTEXT} for #{RepeatingKeyXOR::HEX_CIPHERTEXT}" do
+  it "returns #{RepeatingKeyXOR::PLAINTEXT} for #{RepeatingKeyXOR::HEX_CIPHERTEXT}" do
     ciphertext = hex_to_raw(RepeatingKeyXOR::HEX_CIPHERTEXT)
     expect(send(subject, ciphertext)).to eq(RepeatingKeyXOR::PLAINTEXT)
   end
@@ -53,8 +54,7 @@ describe :break_repeating_key_xor do
   it "finds returns mostly valid words for the example file" do
     b64_ciphertext = File.readlines("6.txt").map(&:chomp).join
     ciphertext = base64_to_raw(b64_ciphertext)
-    plaintext = send(subject, ciphertext)
-    puts "Purported plaintext: #{plaintext.inspect}"
+    plaintext = long_running { send(subject, ciphertext) }
     expect(valid_word_pct(plaintext)).to be > 50
   end
 end
@@ -66,51 +66,30 @@ def transpose_for_key_size(ciphertext, key_size)
   bytes.each_slice(key_size).to_a.transpose.map(&:compact)
 end
 
-def sanitize(s)
-  s.chars.map {|c| c.inspect.length == 3 ? c : "?" }.join.inspect
-  # s.gsub(/[^[:print:][:punct:][:space:]]/, "*")
-  # s.gsub(/[^[:word:]]/, "*")
-end
-
 def break_repeating_key_xor(ciphertext)
-  puts "INPUT CIPHERTEXT: #{raw_to_hex(ciphertext)}"
-
-  puts "CALCULATING EDIT DISTANCES"
+  min_key_size = 2
   max_key_size = [40, ciphertext.length / 2].min
-  potential_key_types = (2..max_key_size).map do |key_size|
+  n_key_sizes_to_try = 10
+
+  potential_key_types = (min_key_size..max_key_size).map do |key_size|
     key_sized_chunks = ciphertext.scan(/.{#{key_size}}/m)
     distances = key_sized_chunks.each_cons(2).map {|c1, c2| hamming_distance(c1, c2) }
     normalized_distances = distances.map {|d| d.to_f / key_size}
     average_normalized_distance = normalized_distances.reduce(&:+) / normalized_distances.size.to_f
     Struct.new(:size, :normalized_edit_distance, :key, :plaintext, :score)[key_size, average_normalized_distance]
-    # d = hamming_distance(*key_sized_chunks.first(2))
-    # Struct.new(:size, :normalized_edit_distance)[key_size, d.to_f / key_size]
   end
 
-  puts "FINDING BEST KEYS FOR KEY SIZES"
-  # puts potential_key_types.sort_by(&:normalized_edit_distance).map(&:inspect)
-  potential_key_types.sort_by(&:normalized_edit_distance).first(10).each do |key_type|
+  potential_key_types.sort_by(&:normalized_edit_distance).first(n_key_sizes_to_try).each do |key_type|
     single_byte_ciphertext_blocks = transpose_for_key_size(ciphertext, key_type.size)
-    # puts "Finding (#{key_type.size}) key bytes"
     single_byte_keys = single_byte_ciphertext_blocks.map {|bytes| find_key(bytes_to_raw(bytes)) }
-    # puts single_byte_keys.inspect
+    long_running_progress
     key_type.key = single_byte_keys.join
     key_type.plaintext = repeating_key_xor(buffer: ciphertext, key: key_type.key)
   end
 
-  puts "SCORING PLAINTEXTS"
   potential_key_types.each do |key_type|
     key_type.score = key_type.plaintext.nil? ? 0 : score_plaintext_histogram(key_type.plaintext)
   end
 
-  potential_key_types.sort_by {|k| k.score * (1.0 / k.normalized_edit_distance) }.each do |key_type|
-    if key_type.plaintext && all_printable_characters?(key_type.plaintext)
-      score_plaintext_histogram(key_type.plaintext)
-      puts "#{key_type.score * (1.0 / key_type.normalized_edit_distance)} SCORE: #{key_type.score}#{'*' unless all_printable_characters?(key_type.plaintext)}\t#{sanitize(key_type.plaintext)}\t#{sanitize(key_type.key)}"
-    end
-  end
-
-  potential_key_types.max_by {|k| k.score * (1.0 / k.normalized_edit_distance) }.plaintext
-# rescue Exception => e
-#   require "byebug"; byebug
+  potential_key_types.max_by {|k| k.score }.plaintext
 end

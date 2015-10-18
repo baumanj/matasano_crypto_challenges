@@ -382,9 +382,13 @@ def valid_word_pct(plaintext)
   end
   if words.any?
     valid_words = words.compact
-    puts "words: #{words}, valid_words: #{valid_words}"
+    # puts "words: #{words}, valid_words: #{valid_words}"
     100 * valid_words.length.to_f / words.length
   else
     0
   end
+end
+
+def sanitize(s)
+  s.chars.map {|c| c.inspect.length == 3 ? c : "?" }.join.inspect
 end
