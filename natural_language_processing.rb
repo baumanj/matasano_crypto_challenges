@@ -394,7 +394,7 @@ end
 def valid_word_pct(plaintext)
   @dict ||= File.read("/usr/share/dict/words").downcase.split
   words = plaintext.gsub(/[^\w\s]/, "").downcase.split.map do |word|
-    @dict.include?(word) && word
+    @dict.include?(word) ? word : nil
   end
   if words.any?
     valid_words = words.compact
