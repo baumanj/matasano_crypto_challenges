@@ -18,23 +18,45 @@ def find_key(ciphertext, top_chars = TOP_ENGLISH_CHARS_BY_FREQ[:the_dictionary])
     Struct.new(:key, :plaintext, :score).new(key, plaintext, score)
   end
 
-  candidates.sort_by(&:score).each do |c|
-    puts "#{raw_to_hex(c.key)}(#{c.score})\t=> #{c.plaintext.inspect}"
-  end
+  # candidates.sort_by(&:score).each do |c|
+  #   puts "#{raw_to_hex(c.key)}(#{c.score})\t=> #{c.plaintext.inspect}"
+  # end
 
   candidates.max_by(&:score).key
 end
 
 def decrypt_aes_128_ecb(buffer, key)
-  aes_128_ecb(:decrypt, buffer, key)
+  crypt_aes_128_ecb(:decrypt, buffer, key)
 end
 
-def aes_128_ecb(encrypt_or_decrypt, buffer, key)
-  cipher = OpenSSL::Cipher.new('AES-128-ECB').send(encrypt_or_decrypt)
-  cipher.key = key
+def crypt_aes_128_ecb(encrypt_or_decrypt, buffer, key)
+  cipher = aes_128_ecb(encrypt_or_decrypt, key)
   cipher.update(buffer) + cipher.final
 end
 
+def aes_128_ecb(encrypt_or_decrypt, key)
+  cipher = OpenSSL::Cipher.new('AES-128-ECB').send(encrypt_or_decrypt)
+  cipher.key = key
+  cipher
+end
+
 def aes_128_cbc(encrypt_or_decrypt, buffer, iv, key)
-  ""
+  fail ArgumentError, "not implemented" unless encrypt_or_decrypt == :decrypt
+
+  cipher = aes_128_ecb(encrypt_or_decrypt, key)
+  cipher.padding = 0
+  block_size = 16
+
+  ciphertext = iv + buffer
+  cipher_blocks = ciphertext.scan(/.{#{block_size}}/m)
+  plain_blocks = cipher_blocks.each_cons(2).map do |prev_block, block|
+    updated_block = cipher.update(block)
+    # puts "#{encrypt_or_decrypt}(#{block.inspect}) => #{updated_block.inspect}"
+    xored = xor(prev_block, updated_block)
+    # puts "#{prev_block.inspect} ^ #{updated_block.inspect} => #{xored.inspect}"
+    # puts xored.inspect
+    xored
+  end
+  plain_blocks.join
+  # Need to trim padding
 end

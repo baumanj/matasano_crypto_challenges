@@ -23,7 +23,7 @@ require "./type_conversion"
 require "./crypto"
 require "./natural_language_processing"
 
-describe :aes_128_ecb do
+describe :crypt_aes_128_ecb do
   it "returns the original buffer when composing decrypt and encrypt" do
     buffer = SecureRandom.random_bytes
     key = SecureRandom.random_bytes
@@ -36,9 +36,10 @@ describe :aes_128_cbc do
   key = "YELLOW SUBMARINE"
   iv = "\x00" * 16
 
-  it "returns something somewhat intelligible when decrypting #{file} against #{key} with an IV of #{iv}" do
+  it "returns something somewhat intelligible when decrypting #{file} against #{key.inspect} with an IV of #{iv.inspect}" do
     ciphertext = base64_to_raw(File.readlines(file).join)
     plaintext = send(subject, :decrypt, ciphertext, iv, key)
+    # puts plaintext
     expect(valid_word_pct(plaintext)).to be > 80
   end
 end
