@@ -26,7 +26,15 @@ def find_key(ciphertext, top_chars = TOP_ENGLISH_CHARS_BY_FREQ[:the_dictionary])
 end
 
 def decrypt_aes_128_ecb(buffer, key)
-  cipher = OpenSSL::Cipher.new('AES-128-ECB').decrypt
+  aes_128_ecb(:decrypt, buffer, key)
+end
+
+def aes_128_ecb(encrypt_or_decrypt, buffer, key)
+  cipher = OpenSSL::Cipher.new('AES-128-ECB').send(encrypt_or_decrypt)
   cipher.key = key
   cipher.update(buffer) + cipher.final
+end
+
+def aes_128_cbc(encrypt_or_decrypt, buffer, iv, key)
+  ""
 end
