@@ -40,22 +40,16 @@ def aes_128_ecb(encrypt_or_decrypt, key)
   cipher
 end
 
-def aes_128_cbc(encrypt_or_decrypt, buffer, iv, key)
-  fail ArgumentError, "not implemented" unless encrypt_or_decrypt == :decrypt
-
-  cipher = aes_128_ecb(encrypt_or_decrypt, key)
+def decrypt_aes_128_cbc(buffer, iv, key)
+  cipher = aes_128_ecb(:decrypt, key)
   cipher.padding = 0
-  block_size = 16
 
   ciphertext = iv + buffer
+  block_size = 16
   cipher_blocks = ciphertext.scan(/.{#{block_size}}/m)
   plain_blocks = cipher_blocks.each_cons(2).map do |prev_block, block|
     updated_block = cipher.update(block)
-    # puts "#{encrypt_or_decrypt}(#{block.inspect}) => #{updated_block.inspect}"
-    xored = xor(prev_block, updated_block)
-    # puts "#{prev_block.inspect} ^ #{updated_block.inspect} => #{xored.inspect}"
-    # puts xored.inspect
-    xored
+    xor(prev_block, updated_block)
   end
   plain_blocks.join
   # Need to trim padding

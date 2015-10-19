@@ -31,14 +31,14 @@ describe :crypt_aes_128_ecb do
   end
 end
 
-describe :aes_128_cbc do
+describe :decrypt_aes_128_cbc do
   file = "10.txt"
   key = "YELLOW SUBMARINE"
   iv = "\x00" * 16
 
   it "returns something somewhat intelligible when decrypting #{file} against #{key.inspect} with an IV of #{iv.inspect}" do
     ciphertext = base64_to_raw(File.readlines(file).join)
-    plaintext = send(subject, :decrypt, ciphertext, iv, key)
+    plaintext = send(subject, ciphertext, iv, key)
     # puts plaintext
     expect(valid_word_pct(plaintext)).to be > 80
   end
