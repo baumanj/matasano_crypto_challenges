@@ -25,6 +25,23 @@ def find_key(ciphertext, top_chars = TOP_ENGLISH_CHARS_BY_FREQ[:the_dictionary])
   candidates.max_by(&:score).key
 end
 
+BLOCK_SIZE ||= 16
+
+def pkcs7_pad(buffer, padded_size)
+  fail ArgumentError, "padded_size must not be less than buffer size" if buffer.size > padded_size
+
+  n_pad_bytes = padded_size - buffer.size
+  buffer + n_pad_bytes.chr * n_pad_bytes
+end
+
+def pkcs7_unpad(buffer)
+  if (n_pad_bytes = buffer[-1].ord) < BLOCK_SIZE
+    buffer[0...-n_pad_bytes]
+  else
+    buffer
+  end
+end
+
 def decrypt_aes_128_ecb(buffer, key)
   crypt_aes_128_ecb(:decrypt, buffer, key)
 end
@@ -47,27 +64,27 @@ end
 def encrypt_aes_128_cbc(plaintext, iv, key)
   cipher = aes_128_ecb(:encrypt, key)
   cipher.padding = 0
-  block_size = 16
 
-  plain_blocks = plaintext.scan(/.{#{block_size}}/m)
+  if (plaintext.size % BLOCK_SIZE).nonzero?
+    plaintext = pkcs7_pad(plaintext, BLOCK_SIZE)
+  end
+
+  plain_blocks = plaintext.scan(/.{#{BLOCK_SIZE}}/m)
   ciphertext = plain_blocks.reduce(iv) do |ciphertext, block|
-    prev_cipherblock = ciphertext[-block_size..-1]
+    prev_cipherblock = ciphertext[-BLOCK_SIZE..-1]
     ciphertext + cipher.update(xor(prev_cipherblock, block))
   end
-  ciphertext[block_size..-1] # omit IV
-  # Need to add padding
+  ciphertext[BLOCK_SIZE..-1] # omit IV
 end
 
 def decrypt_aes_128_cbc(ciphertext, iv, key)
   cipher = aes_128_ecb(:decrypt, key)
   cipher.padding = 0
-  block_size = 16
 
-  cipher_blocks = [iv] + ciphertext.scan(/.{#{block_size}}/m)
+  cipher_blocks = [iv] + ciphertext.scan(/.{#{BLOCK_SIZE}}/m)
   plain_blocks = cipher_blocks.each_cons(2).map do |prev_cipherblock, cipherblock|
     prev_cipherblock_xor_plainblock = cipher.update(cipherblock)
     xor(prev_cipherblock, prev_cipherblock_xor_plainblock)
   end
-  plain_blocks.join
-  # Need to trim padding
+  pkcs7_unpad(plain_blocks.join)
 end

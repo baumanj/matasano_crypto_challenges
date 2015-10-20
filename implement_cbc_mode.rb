@@ -31,10 +31,12 @@ describe :crypt_aes_128_ecb do
   end
 end
 
+block_size = 16
+
 describe :decrypt_aes_128_cbc do
   file = "10.txt"
   key = "YELLOW SUBMARINE"
-  iv = "\x00" * 16
+  iv = "\x00" * block_size
 
   it "returns something somewhat intelligible when decrypting #{file} against #{key.inspect} with an IV of #{iv.inspect}" do
     ciphertext = base64_to_raw(File.readlines(file).join)
@@ -45,11 +47,18 @@ describe :decrypt_aes_128_cbc do
 end
 
 describe :crypt_aes_128_cbc do
+  key = SecureRandom.random_bytes
+  iv = SecureRandom.random_bytes(block_size)
+
   it "returns the original buffer when composing decrypt and encrypt" do
     num_blocks = rand(100)
-    buffer = SecureRandom.random_bytes(16 * num_blocks)
-    key = SecureRandom.random_bytes
-    iv = SecureRandom.random_bytes(16)
+    buffer = SecureRandom.random_bytes(block_size * num_blocks)
+    expect(send(subject, :decrypt, send(subject, :encrypt, buffer, iv, key), iv, key)).to eq(buffer)
+  end
+
+  it "handles partial blocks" do
+    partial_block_size = 1 + rand(block_size - 1)
+    buffer = SecureRandom.random_bytes(partial_block_size)
     expect(send(subject, :decrypt, send(subject, :encrypt, buffer, iv, key), iv, key)).to eq(buffer)
   end
 end

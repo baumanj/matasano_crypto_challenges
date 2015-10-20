@@ -16,13 +16,25 @@ end
 
 require "rspec"
 
+require "./crypto"
+
 describe :pkcs7_pad do
   input = "YELLOW SUBMARINE"
   output = "YELLOW SUBMARINE\x04\x04\x04\x04"
   padded_size = 20
-
   it "returns #{output} when padding #{input} to #{padded_size}" do
     expect(send(subject, input, padded_size)).to eq(output)
+    expect(pkcs7_unpad(output)).to eq(input)
+  end
+
+  block_size = 16
+  it "pads and unpads up to #{block_size - 1} bytes" do
+    0.upto(block_size - 1) do |pad_bytes|
+      input = "X" * (block_size - pad_bytes)
+      output = send(subject, input, block_size)
+      expect(output.size).to eq(block_size)
+      expect(pkcs7_unpad(output)).to eq(input)
+    end
   end
 
   it "gives an error on invalid input" do
@@ -30,12 +42,4 @@ describe :pkcs7_pad do
     expect { send(subject, input, 0) }.to raise_error(ArgumentError)
     expect { send(subject, input, -1) }.to raise_error(ArgumentError)
   end
-
-end
-
-def pkcs7_pad(buffer, padded_size)
-  fail ArgumentError, "padded_size must not be less than buffer size" if buffer.size > padded_size
-
-  n_pad_bytes = padded_size - buffer.size
-  buffer + n_pad_bytes.chr * n_pad_bytes
 end
