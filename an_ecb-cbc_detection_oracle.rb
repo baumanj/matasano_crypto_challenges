@@ -28,8 +28,8 @@ describe :encryption_oracle do
   it "determines whether ECB or CBC is being used 100 times in 100" do
     actual_mode = nil
     100.times do
-      guessed_mode = send(subject) do |plaintext|
-        actual_mode, ciphertext = random_encrypt(plaintext)
+      guessed_mode = detect_block_cipher_mode do |plaintext|
+        actual_mode, ciphertext = send(subject, plaintext)
         ciphertext
       end
       expect(guessed_mode).to eq(actual_mode)
@@ -37,7 +37,7 @@ describe :encryption_oracle do
   end
 end
 
-def random_encrypt(plaintext)
+def encryption_oracle(plaintext)
   key = SecureRandom.random_bytes(16)
   added_bytes = Array.new(2).map { SecureRandom.random_bytes(5 + rand(6)) }
   plaintext = "#{added_bytes.first}#{plaintext}#{added_bytes.last}"
@@ -49,7 +49,7 @@ def random_encrypt(plaintext)
   end
 end
 
-def encryption_oracle
+def detect_block_cipher_mode
   block_size = 16
   ciphertext = yield SecureRandom.random_bytes(block_size) * 3
   n_byte_chunks(ciphertext, block_size)[1..2].uniq.size == 1 ? :ECB : :CBC
