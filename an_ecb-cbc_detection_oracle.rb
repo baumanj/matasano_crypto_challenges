@@ -40,12 +40,9 @@ end
 def random_encrypt(plaintext)
   key = SecureRandom.random_bytes(16)
   added_bytes = "X" * (5 + rand(6))
-  plaintext = "#{added_bytes}#{plaintext}#{added_bytes}"
   if rand(2).zero?
-    print "ECB(#{plaintext}) =>\t"
     [:ECB, encrypt_aes_128_ecb(plaintext, key)]
   else
-    print "CBC(#{plaintext}) =>\t"
     iv = SecureRandom.random_bytes(16)
     [:CBC, encrypt_aes_128_cbc(plaintext, iv, key)]
   end
@@ -53,6 +50,6 @@ end
 
 def encryption_oracle
   block_size = 16
-  ciphertext = yield "YELLOW SUBMARINE" * 3 # probably anything 3x block size
-  :ECB
+  ciphertext = yield SecureRandom.random_bytes(block_size) * 3
+  n_byte_chunks(ciphertext, block_size)[1..2].uniq.size == 1 ? :ECB : :CBC
 end
