@@ -43,3 +43,13 @@ describe :decrypt_aes_128_cbc do
     expect(valid_word_pct(plaintext)).to be > 80
   end
 end
+
+describe :crypt_aes_128_cbc do
+  it "returns the original buffer when composing decrypt and encrypt" do
+    num_blocks = rand(100)
+    buffer = SecureRandom.random_bytes(16 * num_blocks)
+    key = SecureRandom.random_bytes
+    iv = SecureRandom.random_bytes(16)
+    expect(send(subject, :decrypt, send(subject, :encrypt, buffer, iv, key), iv, key)).to eq(buffer)
+  end
+end

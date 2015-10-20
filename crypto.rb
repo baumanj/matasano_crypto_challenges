@@ -40,16 +40,33 @@ def aes_128_ecb(encrypt_or_decrypt, key)
   cipher
 end
 
-def decrypt_aes_128_cbc(buffer, iv, key)
+def crypt_aes_128_cbc(encrypt_or_decrypt, *args)
+  send("#{encrypt_or_decrypt}_aes_128_cbc", *args)
+end
+
+def encrypt_aes_128_cbc(plaintext, iv, key)
+  cipher = aes_128_ecb(:encrypt, key)
+  cipher.padding = 0
+  block_size = 16
+
+  plain_blocks = plaintext.scan(/.{#{block_size}}/m)
+  ciphertext = plain_blocks.reduce(iv) do |ciphertext, block|
+    prev_cipherblock = ciphertext[-block_size..-1]
+    ciphertext + cipher.update(xor(prev_cipherblock, block))
+  end
+  ciphertext[block_size..-1] # omit IV
+  # Need to add padding
+end
+
+def decrypt_aes_128_cbc(ciphertext, iv, key)
   cipher = aes_128_ecb(:decrypt, key)
   cipher.padding = 0
-
-  ciphertext = iv + buffer
   block_size = 16
-  cipher_blocks = ciphertext.scan(/.{#{block_size}}/m)
-  plain_blocks = cipher_blocks.each_cons(2).map do |prev_block, block|
-    updated_block = cipher.update(block)
-    xor(prev_block, updated_block)
+
+  cipher_blocks = [iv] + ciphertext.scan(/.{#{block_size}}/m)
+  plain_blocks = cipher_blocks.each_cons(2).map do |prev_cipherblock, cipherblock|
+    prev_cipherblock_xor_plainblock = cipher.update(cipherblock)
+    xor(prev_cipherblock, prev_cipherblock_xor_plainblock)
   end
   plain_blocks.join
   # Need to trim padding
