@@ -40,6 +40,7 @@ end
 def random_encrypt(plaintext)
   key = SecureRandom.random_bytes(16)
   added_bytes = "X" * (5 + rand(6))
+  plaintext = "#{added_bytes}#{plaintext}#{added_bytes}"
   if rand(2).zero?
     [:ECB, encrypt_aes_128_ecb(plaintext, key)]
   else
