@@ -27,6 +27,10 @@ end
 
 BLOCK_SIZE ||= 16
 
+def pkcs7(pad_or_unpad, *args)
+  send("pkcs7_#{pad_or_unpad}", *args)
+end
+
 def pkcs7_pad(buffer, padded_size)
   fail ArgumentError, "padded_size must not be less than buffer size" if buffer.size > padded_size
 
