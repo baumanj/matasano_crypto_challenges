@@ -50,6 +50,10 @@ def decrypt_aes_128_ecb(buffer, key)
   crypt_aes_128_ecb(:decrypt, buffer, key)
 end
 
+def encrypt_aes_128_ecb(buffer, key)
+  crypt_aes_128_ecb(:encrypt, buffer, key)
+end
+
 def crypt_aes_128_ecb(encrypt_or_decrypt, buffer, key)
   cipher = aes_128_ecb(encrypt_or_decrypt, key)
   cipher.update(buffer) + cipher.final
@@ -69,11 +73,11 @@ def encrypt_aes_128_cbc(plaintext, iv, key)
   cipher = aes_128_ecb(:encrypt, key)
   cipher.padding = 0
 
-  if (plaintext.size % BLOCK_SIZE).nonzero?
-    plaintext = pkcs7_pad(plaintext, BLOCK_SIZE)
+  plain_blocks = plaintext.scan(/.{#{BLOCK_SIZE}}/m) # grabs only full blocks
+  if (remainder = plaintext.size % BLOCK_SIZE).nonzero?
+    partial_block = plaintext[-remainder..-1]
+    plain_blocks.push(pkcs7_pad(partial_block, BLOCK_SIZE))
   end
-
-  plain_blocks = plaintext.scan(/.{#{BLOCK_SIZE}}/m)
   ciphertext = plain_blocks.reduce(iv) do |ciphertext, block|
     prev_cipherblock = ciphertext[-BLOCK_SIZE..-1]
     ciphertext + cipher.update(xor(prev_cipherblock, block))

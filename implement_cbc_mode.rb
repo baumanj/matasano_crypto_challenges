@@ -58,7 +58,7 @@ describe :crypt_aes_128_cbc do
 
   it "handles partial blocks" do
     partial_block_size = 1 + rand(block_size - 1)
-    buffer = SecureRandom.random_bytes(partial_block_size)
+    buffer = SecureRandom.random_bytes((1 + rand(10)) * block_size + partial_block_size)
     expect(send(subject, :decrypt, send(subject, :encrypt, buffer, iv, key), iv, key)).to eq(buffer)
   end
 end
