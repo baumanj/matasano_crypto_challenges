@@ -25,11 +25,11 @@ require "./natural_language_processing"
 require "./crypto"
 
 module SingleByteXORCipher
-  HEX_CIPHERTEXT = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
+  HEX_CIPHERTEXT ||= "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736"
   # found first with brute force + visually scanning output (c.f. master 80d4fb4)
-  HEX_PLAINTEXT = "436f6f6b696e67204d432773206c696b65206120706f756e64206f66206261636f6e"
-  PLAINTEXT = "Cooking MC's like a pound of bacon"
-  KEY = "58"
+  HEX_PLAINTEXT ||= "436f6f6b696e67204d432773206c696b65206120706f756e64206f66206261636f6e"
+  PLAINTEXT ||= "Cooking MC's like a pound of bacon"
+  KEY ||= "58"
 end
 
 describe :decrypt do
