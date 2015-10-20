@@ -22,3 +22,10 @@ end
 def hamming_distance(a, b)
   count_set_bits(xor(a, b))
 end
+
+def n_byte_chunks(buffer, n_bytes, include_tail: true)
+  tail = if include_tail && (remainder = buffer.size % n_bytes).nonzero?
+    buffer[-remainder, remainder]
+  end
+  buffer.scan(/.{#{n_bytes}}/m) + [tail].compact
+end

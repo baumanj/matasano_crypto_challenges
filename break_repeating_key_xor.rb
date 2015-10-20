@@ -72,7 +72,7 @@ def break_repeating_key_xor(ciphertext)
   n_key_sizes_to_try = 10
 
   potential_key_types = (min_key_size..max_key_size).map do |key_size|
-    key_sized_chunks = ciphertext.scan(/.{#{key_size}}/m)
+    key_sized_chunks = n_byte_chunks(ciphertext, key_size, include_tail: false)
     distances = key_sized_chunks.each_cons(2).map {|c1, c2| hamming_distance(c1, c2) }
     normalized_distances = distances.map {|d| d.to_f / key_size}
     average_normalized_distance = normalized_distances.reduce(&:+) / normalized_distances.size.to_f

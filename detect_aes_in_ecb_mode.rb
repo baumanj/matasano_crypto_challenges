@@ -29,7 +29,7 @@ end
 def find_hex_ciphertext(ciphertexts)
   candidates = ciphertexts.map do |ciphertext|
     key_size = 16
-    key_sized_chunks = ciphertext.scan(/.{#{key_size}}/m)
+    key_sized_chunks = n_byte_chunks(ciphertext, key_size)
     Struct.new(:ciphertext, :num_dups)[ciphertext, key_sized_chunks.size - key_sized_chunks.uniq.size]
   end
   candidates.max_by(&:num_dups).ciphertext
