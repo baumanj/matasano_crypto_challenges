@@ -49,6 +49,8 @@ end
 
 unknown_string_base64 = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"
 unknown_string = base64_to_raw(unknown_string_base64)
+# unknown_string = "Eeeny meeny miney mo, catch a something or other"
+# unknown_string = "H"
 
 describe :discover_block_size do
   # AES is a variant of Rijndael which has a fixed block size of 128 bits, and a key size of 128, 192, or 256 bits.
@@ -98,5 +100,61 @@ end
 
 def decrypt_ecb(oracle)
   block_size = discover_block_size(oracle)
-  ""
+  mode = detect_cipher_mode(oracle)
+  return unless mode == :ECB
+
+  byte_decryptor = proc do |plaintext_so_far|
+    target_block_number = (plaintext_so_far.size / block_size) - 1 # offset b/c pretend "A" block
+
+    #debug
+    ptsf = plaintext_so_far[block_size..-1]
+    puts "plaintext_so_far: #{ptsf.size}, #{ptsf.inspect}"
+    puts "decrypting block #{target_block_number} #{n_byte_chunks(ptsf, block_size).last.inspect}?"
+    puts "decrypting byte #{ptsf.size}"
+    #debug
+
+    short_block = "A" * (block_size - 1 - plaintext_so_far.size % block_size)
+
+    puts "short_block:      #{short_block.inspect}"
+    target_block = oracle.call(short_block)[target_block_number * block_size, block_size]
+    last15 = plaintext_so_far[-(block_size - 1)..-1]
+    puts "last15: #{last15.inspect}"
+    next_byte = (0...2**8).find do |byte|
+      oracle.call(last15 + byte.chr)[0, block_size] == target_block
+    end
+    puts "Next byte: #{next_byte} (#{next_byte.chr})"
+    next_byte
+  end
+
+  # plaintext = (0...(2 * block_size)).reduce("A" * block_size) do |plaintext_so_far|
+  #   plaintext_so_far << byte_decryptor.call(plaintext_so_far).chr
+  # end
+
+  bytes_to_decrypt = oracle.call("").size
+  puts "#{bytes_to_decrypt} bytes to decrypt"
+  plaintext = "A" * block_size
+  until (next_byte = byte_decryptor.call(plaintext)) == 1
+    plaintext << next_byte.chr
+  end
+
+  puts "plaintext: #{plaintext.inspect}"
+  plaintext[block_size..-1]
+
+  # first_byte = decrypt_byte("", block_size, oracle)
+
+  # # short_block = "A" * (block_size - 1)
+  # # first_block = oracle.call(short_block)[0, block_size]
+  # # first_byte = (0...2**8).find do |byte|
+  # #   oracle.call(short_block + byte.chr)[0, block_size] == first_block
+  # # end
+  # puts "First byte: #{first_byte} (#{first_byte.chr})"
+
+  # second_byte = decrypt_byte(first_byte.chr, block_size, oracle)
+
+  # # short_block = "A" *  (block_size - 2)
+  # # first_block = oracle.call(short_block)[0, block_size]
+  # # second_byte = (0...2**8).find do |byte|
+  # #   oracle.call(short_block + first_byte.chr + byte.chr)[0, block_size] == first_block
+  # # end
+  # puts "Second byte: #{second_byte} (#{second_byte.chr})"
 end
