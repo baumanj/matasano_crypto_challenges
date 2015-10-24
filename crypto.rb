@@ -46,26 +46,26 @@ def pkcs7_unpad(buffer)
   end
 end
 
-def aes(encrypt_or_decrypt, key, key_bits, mode)
+def aes(encrypt_or_decrypt, key_bits, mode, key)
   cipher = OpenSSL::Cipher::AES.new(key_bits, mode).send(encrypt_or_decrypt)
   cipher.key = key
   cipher
 end
 
 def decrypt_aes_128_ecb(buffer, key)
-  crypt_aes_ecb(:decrypt, buffer, key, 128)
+  crypt_aes_ecb(:decrypt, 128, buffer, key)
 end
 
 def encrypt_aes_128_ecb(buffer, key)
-  crypt_aes_ecb(:encrypt, buffer, key, 128)
+  crypt_aes_ecb(:encrypt, 128, buffer, key)
 end
 
 def crypt_aes_128_ecb(encrypt_or_decrypt, buffer, key)
-  crypt_aes_ecb(encrypt_or_decrypt, buffer, key, 128)
+  crypt_aes_ecb(encrypt_or_decrypt, 128, buffer, key)
 end
 
-def crypt_aes_ecb(encrypt_or_decrypt, buffer, key, key_bits)
-  cipher = aes(encrypt_or_decrypt, key, key_bits, :ECB)
+def crypt_aes_ecb(encrypt_or_decrypt, key_bits, buffer, key)
+  cipher = aes(encrypt_or_decrypt, key_bits, :ECB, key)
   cipher.update(buffer) + cipher.final
 end
 
@@ -74,7 +74,7 @@ def crypt_aes_128_cbc(encrypt_or_decrypt, *args)
 end
 
 def encrypt_aes_128_cbc(plaintext, iv, key)
-  cipher = aes(:encrypt, key, 128, :ECB)
+  cipher = aes(:encrypt, 128, :ECB, key)
   cipher.padding = 0
 
   plain_blocks = n_byte_chunks(plaintext, BLOCK_SIZE)
@@ -89,7 +89,7 @@ def encrypt_aes_128_cbc(plaintext, iv, key)
 end
 
 def decrypt_aes_128_cbc(ciphertext, iv, key)
-  cipher = aes(:decrypt, key, 128, :ECB)
+  cipher = aes(:decrypt, 128, :ECB, key)
   cipher.padding = 0
 
   cipher_blocks = [iv] + n_byte_chunks(ciphertext, BLOCK_SIZE)
