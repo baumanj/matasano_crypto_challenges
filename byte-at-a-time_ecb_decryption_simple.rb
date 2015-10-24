@@ -39,7 +39,7 @@ require "./crypto"
 require "./natural_language_processing"
 require "./type_conversion"
 
-def create_ecb_encryption_oracle(unknown_string, key_bits)
+def create_ecb_encryption_oracle(unknown_string, key_bits = 128)
   key = SecureRandom.random_bytes(key_bits / 8)
   proc do |your_string|
     plaintext = "#{your_string}#{unknown_string}"
@@ -84,5 +84,6 @@ def discover_block_size(oracle)
 end
 
 def decrypt_ecb(oracle)
+  block_size = discover_block_size(oracle)
   ""
 end
