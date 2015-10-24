@@ -63,8 +63,15 @@ describe :discover_block_size do
   end
 end
 
+describe :detect_cipher_mode do
+  it "should return #{:ECB} when given an ECB oracle" do
+    oracle = create_ecb_encryption_oracle(unknown_string)
+    expect(send(subject, oracle)).to eq(:ECB)
+  end
+end
+
 describe :decrypt_ecb do
-  it "returns something somewhat intelligible when given an ECB encryption created with #{unknown_string_base64}" do
+  it "returns something intelligible when given an ECB oracle created with #{unknown_string_base64.inspect}" do
     oracle = create_ecb_encryption_oracle(unknown_string)
     plaintext = send(subject, oracle)
     # puts plaintext
@@ -81,6 +88,12 @@ def discover_block_size(oracle)
     block_size = ciphertext_size - previous_ciphertext_size
     return block_size if block_size.nonzero?
   end
+end
+
+def detect_cipher_mode(oracle)
+  block_size = discover_block_size(oracle)
+  ciphertext = oracle.call(SecureRandom.random_bytes(block_size) * 3)
+  n_byte_chunks(ciphertext, block_size)[1..2].uniq.size == 1 ? :ECB : :CBC
 end
 
 def decrypt_ecb(oracle)
