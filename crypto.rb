@@ -46,9 +46,10 @@ def pkcs7_unpad(buffer)
   end
 end
 
-def aes(encrypt_or_decrypt, key_bits, mode, key)
+def aes(encrypt_or_decrypt, key_bits, mode, key, no_padding: false)
   cipher = OpenSSL::Cipher::AES.new(key_bits, mode).send(encrypt_or_decrypt)
   cipher.key = key
+  cipher.padding = 0 if no_padding
   cipher
 end
 
@@ -74,8 +75,7 @@ def crypt_aes_128_cbc(encrypt_or_decrypt, *args)
 end
 
 def encrypt_aes_128_cbc(plaintext, iv, key)
-  cipher = aes(:encrypt, 128, :ECB, key)
-  cipher.padding = 0
+  cipher = aes(:encrypt, 128, :ECB, key, no_padding: true)
 
   plain_blocks = n_byte_chunks(plaintext, BLOCK_SIZE)
   if plain_blocks.last.size != BLOCK_SIZE
@@ -89,8 +89,7 @@ def encrypt_aes_128_cbc(plaintext, iv, key)
 end
 
 def decrypt_aes_128_cbc(ciphertext, iv, key)
-  cipher = aes(:decrypt, 128, :ECB, key)
-  cipher.padding = 0
+  cipher = aes(:decrypt, 128, :ECB, key, no_padding: true)
 
   cipher_blocks = [iv] + n_byte_chunks(ciphertext, BLOCK_SIZE)
   plain_blocks = cipher_blocks.each_cons(2).map do |prev_cipherblock, cipherblock|
