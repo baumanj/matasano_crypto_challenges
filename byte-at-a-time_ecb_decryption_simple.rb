@@ -33,23 +33,53 @@ if __FILE__ == $0
 end
 
 require "rspec"
+require "securerandom"
+
+require "./crypto"
+require "./natural_language_processing"
+require "./type_conversion"
+
+def create_ecb_encryption_oracle(unknown_string, key_bits)
+  key = SecureRandom.random_bytes(key_bits / 8)
+  proc do |your_string|
+    plaintext = "#{your_string}#{unknown_string}"
+    crypt_aes_ecb(:encrypt, key_bits, plaintext, key)
+  end
+end
+
+unknown_string_base64 = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"
+unknown_string = base64_to_raw(unknown_string_base64)
+
+describe :discover_block_size do
+  # AES is a variant of Rijndael which has a fixed block size of 128 bits, and a key size of 128, 192, or 256 bits.
+  # —https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
+  block_size = 16
+  key_sizes = [128, 192, 256]
+  key_sizes.each do |key_bits|
+    it "returns #{block_size} when called with #{key_bits}-bit oracle" do
+      oracle = create_ecb_encryption_oracle(unknown_string, key_bits)
+      expect(send(subject, oracle)).to eq(block_size)
+    end
+  end
+end
 
 describe :decrypt_ecb do
-  unknown_string_base64 = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"
-
   it "returns something somewhat intelligible when given an ECB encryption created with #{unknown_string_base64}" do
-    oracle = create_ecb_encryption_oracle(base64_to_raw(unknown_string_base64))
+    oracle = create_ecb_encryption_oracle(unknown_string)
     plaintext = send(subject, oracle)
     # puts plaintext
     expect(valid_word_pct(plaintext)).to be > 80
   end
 end
 
-def create_ecb_encryption_oracle(unknown_string)
-  key = SecureRandom.random_bytes(16)
-  proc do |your_string|
-    plaintext = "#{your_string}#{unknown_string}"
-    encrypt_aes_128_ecb(plaintext, key)
+def discover_block_size(oracle)
+  plaintext = ""
+  previous_ciphertext_size = oracle.call(plaintext).size
+  loop do
+    plaintext << 0.chr
+    ciphertext_size = oracle.call(plaintext).size
+    block_size = ciphertext_size - previous_ciphertext_size
+    return block_size if block_size.nonzero?
   end
 end
 
