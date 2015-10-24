@@ -49,8 +49,6 @@ end
 
 unknown_string_base64 = "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"
 unknown_string = base64_to_raw(unknown_string_base64)
-# unknown_string = "Eeeny meeny miney mo, catch a something or other"
-# unknown_string = "H"
 
 describe :discover_block_size do
   # AES is a variant of Rijndael which has a fixed block size of 128 bits, and a key size of 128, 192, or 256 bits.
@@ -73,10 +71,28 @@ describe :detect_cipher_mode do
 end
 
 describe :decrypt_ecb do
+  one_byte_equal_to_1 = 1.chr
+  it "returns #{one_byte_equal_to_1.inspect} when given an ECB oracle created with #{one_byte_equal_to_1.inspect}" do
+    oracle = create_ecb_encryption_oracle(one_byte_equal_to_1)
+    expect(send(subject, oracle)).to eq(one_byte_equal_to_1)
+  end
+
+  it "returns the plaintext when given an ECB oracle created with a plaintext" do
+    1.upto(100) do |plaintext_length|
+      plaintext = SecureRandom.random_bytes(plaintext_length)
+      oracle = create_ecb_encryption_oracle(plaintext)
+      expect(send(subject, oracle)).to eq(plaintext)
+    end
+  end
+
+  it "raises an ArgumentError when given an ECB oracle created with an empty string" do
+    oracle = create_ecb_encryption_oracle("")
+    expect { send(subject, oracle) }.to raise_error(ArgumentError)
+  end
+
   it "returns something intelligible when given an ECB oracle created with #{unknown_string_base64.inspect}" do
     oracle = create_ecb_encryption_oracle(unknown_string)
     plaintext = send(subject, oracle)
-    # puts plaintext
     expect(valid_word_pct(plaintext)).to be > 80
   end
 end
@@ -104,57 +120,22 @@ def decrypt_ecb(oracle)
   return unless mode == :ECB
 
   byte_decryptor = proc do |plaintext_so_far|
-    target_block_number = (plaintext_so_far.size / block_size) - 1 # offset b/c pretend "A" block
-
-    #debug
-    ptsf = plaintext_so_far[block_size..-1]
-    puts "plaintext_so_far: #{ptsf.size}, #{ptsf.inspect}"
-    puts "decrypting block #{target_block_number} #{n_byte_chunks(ptsf, block_size).last.inspect}?"
-    puts "decrypting byte #{ptsf.size}"
-    #debug
-
+    target_block_number = (plaintext_so_far.size / block_size)
     short_block = "A" * (block_size - 1 - plaintext_so_far.size % block_size)
-
-    puts "short_block:      #{short_block.inspect}"
     target_block = oracle.call(short_block)[target_block_number * block_size, block_size]
-    last15 = plaintext_so_far[-(block_size - 1)..-1]
-    puts "last15: #{last15.inspect}"
-    next_byte = (0...2**8).find do |byte|
-      oracle.call(last15 + byte.chr)[0, block_size] == target_block
+    last_block_minus_one_bytes = (short_block + plaintext_so_far)[-(block_size - 1)..-1]
+
+    (0...2**8).find do |byte|
+      oracle.call(last_block_minus_one_bytes + byte.chr)[0, block_size] == target_block
     end
-    puts "Next byte: #{next_byte} (#{next_byte.chr})"
-    next_byte
   end
 
-  # plaintext = (0...(2 * block_size)).reduce("A" * block_size) do |plaintext_so_far|
-  #   plaintext_so_far << byte_decryptor.call(plaintext_so_far).chr
-  # end
-
-  bytes_to_decrypt = oracle.call("").size
-  puts "#{bytes_to_decrypt} bytes to decrypt"
-  plaintext = "A" * block_size
-  until (next_byte = byte_decryptor.call(plaintext)) == 1
+  plaintext = ""
+  while (next_byte = byte_decryptor.call(plaintext))
     plaintext << next_byte.chr
   end
 
-  puts "plaintext: #{plaintext.inspect}"
-  plaintext[block_size..-1]
-
-  # first_byte = decrypt_byte("", block_size, oracle)
-
-  # # short_block = "A" * (block_size - 1)
-  # # first_block = oracle.call(short_block)[0, block_size]
-  # # first_byte = (0...2**8).find do |byte|
-  # #   oracle.call(short_block + byte.chr)[0, block_size] == first_block
-  # # end
-  # puts "First byte: #{first_byte} (#{first_byte.chr})"
-
-  # second_byte = decrypt_byte(first_byte.chr, block_size, oracle)
-
-  # # short_block = "A" *  (block_size - 2)
-  # # first_block = oracle.call(short_block)[0, block_size]
-  # # second_byte = (0...2**8).find do |byte|
-  # #   oracle.call(short_block + first_byte.chr + byte.chr)[0, block_size] == first_block
-  # # end
-  # puts "Second byte: #{second_byte} (#{second_byte.chr})"
+  # When we try to find a byte after the last byte, it will appear to match
+  # a plaintext with one byte of padding; discard it.
+  plaintext.chomp("\x01")
 end
