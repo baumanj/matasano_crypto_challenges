@@ -12,7 +12,7 @@ end
 require "rspec"
 require "securerandom"
 
-require "./single-byte_xor_cipher"
+require "./103_single-byte_xor_cipher"
 require "./long_running"
 
 shared_examples "a find_hex_ciphertext function" do

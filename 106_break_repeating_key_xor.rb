@@ -31,7 +31,7 @@ end
 
 require "rspec"
 
-require "./implement_repeating-key_xor"
+require "./105_implement_repeating-key_xor"
 require "./bit_manipulation"
 require "./natural_language_processing"
 require "./long_running"
